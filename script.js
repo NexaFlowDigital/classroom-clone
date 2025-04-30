@@ -1,6 +1,6 @@
-// drag & drop
+// --- DRAG & DROP UTILS ---
 function makeDraggable(el) {
-  let ox, oy, down = false;
+  let ox, oy, down=false;
   const hdr = el.querySelector('.header');
   hdr.addEventListener('mousedown', e => {
     down = true;
@@ -19,107 +19,98 @@ function makeDraggable(el) {
   });
 }
 
-// widget wrapper
+// --- WIDGET WRAPPER ---
 function createWidget(title) {
   const w = document.createElement('div');
   w.className = 'widget';
   w.style.left = '20px';
   w.style.top = '20px';
-  w.innerHTML = `<div class="header">${title} <span class="close">✖</span></div>`;
+  w.innerHTML = `
+    <div class="header">
+      <span class="title">${title}</span>
+      <div>
+        <span class="edit">✎</span>
+        <span class="close">✖</span>
+      </div>
+    </div>`;
   w.querySelector('.close').onclick = () => w.remove();
   document.getElementById('canvas').appendChild(w);
   makeDraggable(w);
   return w;
 }
 
-// annotation overlay & history
-let annoMode = false, drawing = false, ctx, canvasA, history = [];
+// --- FORMAT HELPERS ---
+function formatTime(s) {
+  const m = Math.floor(s/60), sec = s%60;
+  return `${m}:${sec.toString().padStart(2,'0')}`;
+}
+
+// --- ANNOTATION SETUP ---
+let annoMode=false, drawing=false, canvasA, ctx, history=[];
 function initAnnotation() {
   canvasA = document.createElement('canvas');
   canvasA.width = window.innerWidth;
   canvasA.height = window.innerHeight;
-  canvasA.style.position = 'fixed';
-  canvasA.style.top = canvasA.style.left = '0';
-  canvasA.style.zIndex = 999;
+  Object.assign(canvasA.style, {
+    position:'fixed', top:0, left:0, zIndex:2000
+  });
   document.body.appendChild(canvasA);
   ctx = canvasA.getContext('2d');
   ctx.lineCap = 'round';
   canvasA.addEventListener('mousedown', e => {
-    drawing = true;
+    drawing=true;
     ctx.beginPath();
-    ctx.moveTo(e.clientX, e.clientY);
+    ctx.moveTo(e.clientX,e.clientY);
   });
   canvasA.addEventListener('mousemove', e => {
     if (!drawing) return;
-    ctx.lineTo(e.clientX, e.clientY);
+    ctx.lineTo(e.clientX,e.clientY);
     ctx.stroke();
   });
   window.addEventListener('mouseup', () => {
     if (!drawing) return;
-    drawing = false;
+    drawing=false;
     history.push(canvasA.toDataURL());
   });
 }
 
-// toolbar elements
-const toolbar = document.getElementById('toolbar');
+// --- TOOLBAR & CONTROLS HOOKUP ---
 const tools = document.getElementById('tools');
-const collapseBtn = document.getElementById('collapseBtn');
-const annoControls = document.getElementById('annoControls');
-const penColor = document.getElementById('penColor');
-const penSize = document.getElementById('penSize');
-const eraserBtn = document.getElementById('eraserBtn');
-const undoBtn = document.getElementById('undoBtn');
-const saveBtn = document.getElementById('saveBtn');
-const settingsBtn = document.getElementById('settingsBtn');
-const annotateTool = document.getElementById('annotateTool');
-
-// collapse / expand toolbar
-let collapsed = false;
-collapseBtn.onclick = () => {
-  collapsed = !collapsed;
-  tools.style.display = collapsed ? 'none' : 'flex';
-  collapseBtn.innerText = collapsed ? '⬇' : '⬆';
+document.getElementById('collapseBtn').onclick = () => {
+  const v = tools.style.display !== 'none';
+  tools.style.display = v ? 'none' : 'flex';
+  collapseBtn.innerText = v ? '▼' : '▲';
 };
-
-// Annotate toggle
-annotateTool.onclick = () => {
+document.getElementById('annotateTool').onclick = () => {
   annoMode = !annoMode;
-  annotateTool.style.background = annoMode ? '#008800' : '#666';
-  annoControls.style.display = annoMode ? 'flex' : 'none';
+  annotateTool.style.background = annoMode ? '#008800' : '#0077C8';
+  document.getElementById('annoControls').style.display = annoMode ? 'flex' : 'none';
   if (annoMode && !canvasA) initAnnotation();
 };
-
-// eraser
-eraserBtn.onclick = () => {
+document.getElementById('eraserBtn').onclick = () => {
   ctx.globalCompositeOperation = 'destination-out';
 };
-
-// pen settings
-penColor.onchange = () => {
+document.getElementById('penColor').onchange = e => {
   ctx.globalCompositeOperation = 'source-over';
-  ctx.strokeStyle = penColor.value;
+  ctx.strokeStyle = e.target.value;
 };
-penSize.oninput = () => ctx.lineWidth = penSize.value;
-
-// undo annotation
-undoBtn.onclick = () => {
+document.getElementById('penSize').oninput = e => {
+  ctx.lineWidth = e.target.value;
+};
+document.getElementById('undoBtn').onclick = () => {
   if (!history.length) return;
-  const img = new Image();
   history.pop();
-  const data = history[history.length - 1];
   ctx.clearRect(0,0,canvasA.width,canvasA.height);
-  if (data) {
-    img.onload = () => ctx.drawImage(img,0,0);
-    img.src = data;
+  const last = history[history.length-1];
+  if (last) {
+    const img = new Image();
+    img.onload = ()=> ctx.drawImage(img,0,0);
+    img.src = last;
   }
 };
-
-// save screen
-saveBtn.onclick = () => {
+document.getElementById('saveBtn').onclick = () => {
   html2canvas(document.getElementById('canvas')).then(c => {
-    // overlay annotation
-    if (canvasA) c.getContext('2d').drawImage(canvasA, 0, 0);
+    if (canvasA) c.getContext('2d').drawImage(canvasA,0,0);
     c.toBlob(blob => {
       const a = document.createElement('a');
       a.download = 'screenshot.png';
@@ -128,13 +119,31 @@ saveBtn.onclick = () => {
     });
   });
 };
-
-// settings placeholder
-settingsBtn.onclick = () => {
-  alert('Settings panel – customize features here.');
+document.getElementById('settingsBtn').onclick = () => {
+  const tcol = prompt('Toolbar color (CSS):', getComputedStyle(document.documentElement).getPropertyValue('--toolbar-bg'));
+  const wcol = prompt('Widget header color:', getComputedStyle(document.documentElement).getPropertyValue('--widget-header-bg'));
+  if (tcol) document.documentElement.style.setProperty('--toolbar-bg', tcol);
+  if (wcol) document.documentElement.style.setProperty('--widget-header-bg', wcol);
 };
 
-// --- widget implementations ---
+// --- SELECT TOOL ---
+let selectMode=false;
+document.getElementById('selectTool').onclick = () => {
+  selectMode = !selectMode;
+  selectTool.style.background = selectMode ? '#008800' : '#0077C8';
+  document.querySelectorAll('.widget').forEach(w => {
+    w.onclick = e => {
+      if (!selectMode) return;
+      e.stopPropagation();
+      w.classList.toggle('selected');
+      w.style.boxShadow = w.classList.contains('selected')
+        ? '0 0 0 3px #FFB800'
+        : 'var(--widget-shadow)';
+    };
+  });
+};
+
+// --- WIDGET REGISTRY ---
 const widgetRegistry = {
   screenShare: () => {
     const w = createWidget('Screen Share');
@@ -142,15 +151,15 @@ const widgetRegistry = {
       .then(s => {
         const v = document.createElement('video');
         v.srcObject = s; v.autoplay = true;
-        v.width=320; v.height=180;
+        v.style.width='100%'; v.style.height='auto';
         w.appendChild(v);
       })
-      .catch(e=> w.append('❌ '+e.message));
+      .catch(e => w.append('❌ '+e.message));
     return w;
   },
 
   setBackground: () => {
-    const c = prompt('Background (color or image URL):');
+    const c = prompt('Background color or image URL:');
     if (!c) return;
     const can = document.getElementById('canvas');
     can.style.background = c.startsWith('http')
@@ -178,16 +187,16 @@ const widgetRegistry = {
 
   timer: () => {
     const w = createWidget('Timer');
-    let s = parseInt(prompt('Start seconds:'),10)||0;
+    let s = 0;
     const d = document.createElement('div');
-    d.innerText = `${Math.floor(s/60)}:${(s%60).toString().padStart(2,'0')}`;
+    d.innerText = formatTime(s);
     w.appendChild(d);
     const btn = document.createElement('button');
     btn.innerText='Start/Stop';
     let id;
     btn.onclick = () => {
       if (id) clearInterval(id), id=null;
-      else id = setInterval(()=>{ s++; d.innerText=`${Math.floor(s/60)}:${(s%60).toString().padStart(2,'0')}`; },1000);
+      else id = setInterval(()=>{ s++; d.innerText=formatTime(s); },1000);
     };
     w.appendChild(btn);
     return w;
@@ -198,8 +207,7 @@ const widgetRegistry = {
     const total = parseInt(prompt('Total seconds:'),10)||60;
     let rem = total;
     const c = document.createElement('canvas');
-    c.width=c.height=120;
-    w.appendChild(c);
+    c.width=c.height=120; w.appendChild(c);
     const x = c.getContext('2d');
     function draw(){
       x.clearRect(0,0,120,120);
@@ -209,21 +217,20 @@ const widgetRegistry = {
       x.lineWidth=10; x.stroke();
       x.font='16px sans-serif';
       x.textAlign='center'; x.textBaseline='middle';
-      x.fillText(`${Math.floor(rem/60)}:${(rem%60).toString().padStart(2,'0')}`,60,60);
+      x.fillText(formatTime(rem),60,60);
     }
     draw();
     const id = setInterval(()=>{
-      if(rem>0){ rem--; draw(); }
+      if (rem>0){ rem--; draw(); }
       else clearInterval(id);
     },1000);
     return w;
   },
 
   eventCountdown: () => {
-    const w = createWidget('Event Countdown');
+    const w = createWidget('Countdown');
     const when = new Date(prompt('Target date/time (YYYY-MM-DD HH:MM):'));
-    const d = document.createElement('div');
-    w.appendChild(d);
+    const d = document.createElement('div'); w.appendChild(d);
     function upd(){
       const diff = when - new Date();
       if(diff<=0){ d.innerText='🎉'; return; }
@@ -261,12 +268,12 @@ const widgetRegistry = {
     const w = createWidget('Timetable');
     const tbl = document.createElement('table');
     tbl.border=1;
-    tbl.contentEditable=true;
     tbl.innerHTML = `
       <tr><th>Time</th><th>Activity</th></tr>
       <tr><td>8:00</td><td>…</td></tr>
       <tr><td>9:00</td><td>…</td></tr>
     `;
+    tbl.contentEditable = 'true';
     w.appendChild(tbl);
     return w;
   },
@@ -315,7 +322,7 @@ const widgetRegistry = {
     const w = createWidget('Traffic Light');
     const box = document.createElement('div');
     box.className='traffic-box';
-    const circles = [];
+    const circles=[];
     ['red','yellow','green'].forEach(c=>{
       const cEl = document.createElement('div');
       cEl.className='traffic-light-circle';
@@ -343,15 +350,15 @@ const widgetRegistry = {
       let score=0;
       const row = document.createElement('div');
       const lbl = document.createElement('span');
-      const disp = document.createElement('span');
-      const plus = document.createElement('button');
-      const minus = document.createElement('button');
-      lbl.innerText = t.trim()+': ';
-      disp.innerText = score;
-      plus.innerText = '+';
-      minus.innerText = '-';
-      plus.onclick = ()=> disp.innerText = ++score;
-      minus.onclick = ()=> disp.innerText = --score;
+      const disp= document.createElement('span');
+      const plus=document.createElement('button');
+      const minus=document.createElement('button');
+      lbl.innerText=t.trim()+': ';
+      disp.innerText=score;
+      plus.innerText='+';
+      minus.innerText='-';
+      plus.onclick=()=>disp.innerText=++score;
+      minus.onclick=()=>disp.innerText=--score;
       row.append(lbl, disp, plus, minus);
       cont.appendChild(row);
     });
@@ -361,10 +368,18 @@ const widgetRegistry = {
 
   soundLevel: () => {
     const w = createWidget('Sound Level');
-    const threshold = parseFloat(prompt('Threshold 0–1:'),10)||0.2;
+    let threshold = 0.2;
     const bar = document.createElement('div');
     bar.style.height='20px'; bar.style.width='0'; bar.style.background='green';
-    w.appendChild(bar);
+    const slider = document.createElement('input');
+    slider.type='range'; slider.min=0; slider.max=1; slider.step=0.01; slider.value=threshold;
+    const label = document.createElement('label');
+    label.innerText = `Threshold: ${threshold}`;
+    slider.oninput = () => {
+      threshold = parseFloat(slider.value);
+      label.innerText = `Threshold: ${threshold}`;
+    };
+    w.append(label, slider, bar);
     navigator.mediaDevices.getUserMedia({ audio:true }).then(stream=>{
       const aCtx = new AudioContext();
       const src = aCtx.createMediaStreamSource(stream);
@@ -373,10 +388,10 @@ const widgetRegistry = {
       const data = new Uint8Array(analyser.fftSize);
       function upd(){
         analyser.getByteTimeDomainData(data);
-        let sum=0; data.forEach(v=>sum+=Math.abs(v-128));
+        let sum=0; data.forEach(v=> sum += Math.abs(v-128));
         const vol = Math.min(1, sum/data.length/128);
         bar.style.width = (vol*100)+'%';
-        bar.style.background = vol>=threshold ? 'green':'red';
+        bar.style.background = vol >= threshold ? 'green' : 'red';
         requestAnimationFrame(upd);
       }
       upd();
@@ -388,8 +403,8 @@ const widgetRegistry = {
     const w = createWidget('Work Symbols');
     const syms=['✏️','☕️','✅','🔴'];
     let idx=0;
-    const btn = document.createElement('button');
-    const d = document.createElement('div');
+    const btn=document.createElement('button');
+    const d=document.createElement('div');
     d.style.fontSize='2rem';
     btn.innerText='Next';
     btn.onclick = ()=>{ d.innerText=syms[idx]; idx=(idx+1)%syms.length; };
@@ -402,7 +417,7 @@ const widgetRegistry = {
     const w = createWidget('Stickers');
     const url = prompt('Sticker URL:');
     if(!url) return;
-    const img = document.createElement('img');
+    const img=document.createElement('img');
     img.src=url;
     w.appendChild(img);
     return w;
@@ -412,7 +427,7 @@ const widgetRegistry = {
     const w = createWidget('Image');
     const url = prompt('Image URL:');
     if(!url) return;
-    const img = document.createElement('img');
+    const img=document.createElement('img');
     img.src=url;
     w.appendChild(img);
     return w;
@@ -422,23 +437,27 @@ const widgetRegistry = {
     const w = createWidget('Video');
     const url = prompt('Video embed URL:');
     if(!url) return;
-    const ifr = document.createElement('iframe');
-    ifr.src=url; ifr.width=300; ifr.height=200;
+    const ifr=document.createElement('iframe');
+    ifr.src=url; ifr.width='100%'; ifr.height='200';
     w.appendChild(ifr);
     return w;
   },
 
   embed: () => {
     const w = createWidget('Embed');
-    let url = prompt('URL to embed:');
-    if(!url) return;
     const ifr = document.createElement('iframe');
-    ifr.src=url; ifr.width=300; ifr.height=200;
+    ifr.style.width='100%'; ifr.style.height='200px';
     w.appendChild(ifr);
-    // allow double-click to change
-    w.ondblclick = () => {
+    // initial URL
+    function setURL(u){
+      ifr.src = u;
+    }
+    const url = prompt('URL to embed:');
+    if (url) setURL(url);
+    // edit button:
+    w.querySelector('.edit').onclick = () => {
       const nu = prompt('New URL:', ifr.src);
-      if(nu) ifr.src = nu;
+      if (nu) setURL(nu);
     };
     return w;
   },
@@ -447,8 +466,8 @@ const widgetRegistry = {
     const w = createWidget('Hyperlink');
     const url = prompt('URL:');
     if(!url) return w;
-    const text = prompt('Link text:') || url;
-    const a = document.createElement('a');
+    const text = prompt('Link text:')||url;
+    const a=document.createElement('a');
     a.href=url; a.target='_blank'; a.innerText=text;
     w.appendChild(a);
     return w;
@@ -456,17 +475,18 @@ const widgetRegistry = {
 
   restroom: () => {
     const w = createWidget('Rest Room');
-    let allowed = false;
-    const disp = document.createElement('div');
-    disp.style.fontSize='1.5em';
-    disp.style.textAlign='center';
-    const btn = document.createElement('button');
+    let allowed=false;
+    const disp=document.createElement('div');
+    disp.style.fontSize='1.5em'; disp.style.textAlign='center';
+    const btn=document.createElement('button');
     btn.innerText='Toggle';
+    btn.onclick = ()=>{ allowed=!allowed; render(); };
     function render(){
-      disp.innerText = allowed ? '✅ Restroom Allowed' : '❌ Restroom Closed';
+      disp.innerText = allowed
+        ? '✅ Restroom Allowed'
+        : '❌ Restroom Closed';
       disp.style.color = allowed ? 'green' : 'red';
     }
-    btn.onclick = ()=>{ allowed = !allowed; render(); };
     w.appendChild(disp);
     w.appendChild(btn);
     render();
@@ -474,7 +494,7 @@ const widgetRegistry = {
   }
 };
 
-// hook up widget picker
+// --- WIDGET PICKER HOOKUP ---
 document.getElementById('widgetSelect').onchange = e => {
   const t = e.target.value;
   if (t && widgetRegistry[t]) widgetRegistry[t]();
