@@ -7,33 +7,54 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div id="toolbar">
-    <select id="widgetSelect">
-      <option value="">➕ Add widget…</option>
-      <option value="screenShare">Screen Share</option>
-      <option value="setBackground">Set Background</option>
-      <option value="text">Text</option>
-      <option value="clock">Clock</option>
-      <option value="timer">Timer</option>
-      <option value="visualTimer">Visual Timer</option>
-      <option value="eventCountdown">Event Countdown</option>
-      <option value="poll">Poll</option>
-      <option value="timetable">Timetable</option>
-      <option value="randomizer">Randomizer</option>
-      <option value="groupMaker">Group Maker</option>
-      <option value="dice">Dice</option>
-      <option value="trafficLight">Traffic Light</option>
-      <option value="scoreboard">Scoreboard</option>
-      <option value="soundLevel">Sound Level</option>
-      <option value="workSymbols">Work Symbols</option>
-      <option value="stickers">Stickers</option>
-      <option value="image">Image</option>
-      <option value="video">Video</option>
-      <option value="embed">Embed</option>
-      <option value="hyperlink">Hyperlink</option>
-    </select>
-  </div>
   <div id="canvas"></div>
+
+  <!-- Fixed bottom-center toolbar -->
+  <div id="toolbar">
+    <button id="collapseBtn">⬆</button>
+    <div id="tools">
+      <select id="widgetSelect">
+        <option value="">➕ Add widget…</option>
+        <option value="screenShare">Screen Share</option>
+        <option value="setBackground">Set Background</option>
+        <option value="text">Text</option>
+        <option value="clock">Clock</option>
+        <option value="timer">Timer</option>
+        <option value="visualTimer">Visual Timer</option>
+        <option value="eventCountdown">Event Countdown</option>
+        <option value="poll">Poll</option>
+        <option value="timetable">Timetable</option>
+        <option value="randomizer">Randomizer</option>
+        <option value="groupMaker">Group Maker</option>
+        <option value="dice">Dice</option>
+        <option value="trafficLight">Traffic Light</option>
+        <option value="scoreboard">Scoreboard</option>
+        <option value="soundLevel">Sound Level</option>
+        <option value="workSymbols">Work Symbols</option>
+        <option value="stickers">Stickers</option>
+        <option value="image">Image</option>
+        <option value="video">Video</option>
+        <option value="embed">Embed</option>
+        <option value="hyperlink">Hyperlink</option>
+        <option value="restroom">Rest Room</option>
+      </select>
+      <button id="selectTool">Select</button>
+      <button id="annotateTool">Annotate</button>
+      <button id="undoBtn">Undo</button>
+      <button id="saveBtn">Save</button>
+      <button id="settingsBtn">⚙️</button>
+    </div>
+  </div>
+
+  <!-- Annotation controls (hidden until annotate mode) -->
+  <div id="annoControls">
+    <input type="color" id="penColor" value="#ff0000"/>
+    <input type="range" id="penSize" min="1" max="20" value="3"/>
+    <button id="eraserBtn">Eraser</button>
+  </div>
+
+  <!-- html2canvas for Save -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="script.js"></script>
 </body>
 </html>
