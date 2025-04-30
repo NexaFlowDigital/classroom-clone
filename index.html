@@ -7,17 +7,17 @@
   <link rel="stylesheet" href="style.css"/>
 </head>
 <body>
-  <!-- Screen tabs -->
+  <!-- Screen Tabs -->
   <div id="screenTabs"></div>
 
-  <!-- Canvas container -->
+  <!-- Canvas -->
   <div id="canvas"></div>
 
-  <!-- Bottom‐center toolbar -->
+  <!-- Toolbar -->
   <div id="toolbar">
-    <button id="collapseBtn" title="Hide toolbar">▲</button>
+    <button id="collapseBtn">▲</button>
     <div id="tools">
-      <select id="widgetSelect" title="Add widget">
+      <select id="widgetSelect">
         <option value="">➕ Add widget…</option>
         <option value="screenShare">Screen Share</option>
         <option value="setBackground">Background</option>
@@ -42,31 +42,30 @@
         <option value="hyperlink">Hyperlink</option>
         <option value="restroom">Rest Room</option>
       </select>
-      <button id="selectTool" title="Select widgets">🔲</button>
-      <button id="annotateTool" title="Draw on canvas">✏️</button>
-      <button id="undoBtn" title="Undo drawing">↶</button>
-      <button id="saveBtn" title="Save layout">💾</button>
-      <button id="settingsBtn" title="Settings ⚙️">⚙️</button>
+      <button id="selectTool">🔲</button>
+      <button id="annotateTool">✏️</button>
+      <button id="undoBtn">↶</button>
+      <button id="saveBtn">💾</button>
+      <button id="settingsBtn">⚙️</button>
     </div>
   </div>
 
-  <!-- Annotation controls -->
+  <!-- Annotation Controls -->
   <div id="annoControls">
-    <button id="penBtn" title="Pen">✏️</button>
-    <label><input type="color" id="penColor" value="#e74c3c"/> Color</label>
-    <label><input type="range" id="penSize" min="1" max="20" value="4"/> Size</label>
-    <button id="eraserBtn" title="Eraser">🧹</button>
+    <button id="penBtn">✏️</button>
+    <input type="color" id="penColor" value="#e74c3c"/>
+    <input type="range" id="penSize" min="1" max="20" value="4"/>
+    <button id="eraserBtn">🧹</button>
   </div>
 
-  <!-- Settings panel -->
+  <!-- Settings Panel -->
   <div id="settingsPanel">
-    <h3>Theme Settings</h3>
-    <label>Toolbar bg: <input type="color" id="themeToolbar"/></label>
-    <label>Widget header bg: <input type="color" id="themeWidget"/></label>
+    <h3>Theme</h3>
+    <label>Toolbar: <input type="color" id="themeToolbar"/></label>
+    <label>Widget header: <input type="color" id="themeWidget"/></label>
     <button id="closeSettings">Close</button>
   </div>
 
-  <!-- Save & load library -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="script.js"></script>
 </body>
