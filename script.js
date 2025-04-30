@@ -1,502 +1,443 @@
-// --- DRAG & DROP UTILS ---
-function makeDraggable(el) {
-  let ox, oy, down=false;
-  const hdr = el.querySelector('.header');
-  hdr.addEventListener('mousedown', e => {
-    down = true;
-    ox = e.clientX - el.offsetLeft;
-    oy = e.clientY - el.offsetTop;
-    document.body.style.userSelect = 'none';
-  });
-  document.addEventListener('mousemove', e => {
-    if (!down) return;
-    el.style.left = (e.clientX - ox) + 'px';
-    el.style.top = (e.clientY - oy) + 'px';
-  });
-  document.addEventListener('mouseup', () => {
-    down = false;
-    document.body.style.userSelect = '';
-  });
+// — Utility: make any element draggable by its .header —
+function makeDraggable(w){
+  let dx,dy,down=false;
+  const hdr=w.querySelector('.header');
+  hdr.onmousedown=e=>{
+    down=true;
+    dx=e.clientX-w.offsetLeft;
+    dy=e.clientY-w.offsetTop;
+    document.body.style.userSelect='none';
+  };
+  document.onmousemove=e=>{
+    if(!down)return;
+    w.style.left=(e.clientX-dx)+'px';
+    w.style.top=(e.clientY-dy)+'px';
+  };
+  document.onmouseup=e=>{
+    down=false; document.body.style.userSelect='';
+  };
 }
 
-// --- WIDGET WRAPPER ---
-function createWidget(title) {
-  const w = document.createElement('div');
-  w.className = 'widget';
-  w.style.left = '20px';
-  w.style.top = '20px';
-  w.innerHTML = `
+// — Widget factory: wraps a title + edit/close controls —
+function createWidget(type,config){
+  const w=document.createElement('div');
+  w.className='widget';
+  w.dataset.type=type;
+  w.innerHTML=`
     <div class="header">
-      <span class="title">${title}</span>
-      <div>
-        <span class="edit">✎</span>
-        <span class="close">✖</span>
-      </div>
-    </div>`;
-  w.querySelector('.close').onclick = () => w.remove();
-  document.getElementById('canvas').appendChild(w);
+      <span>${type}</span>
+      <span class="edit" title="Edit">✎</span>
+      <span class="close" title="Close">✖</span>
+    </div>
+    <div class="content"></div>
+  `;
+  const cont=w.querySelector('.content');
+  w.querySelector('.close').onclick=()=>{w.remove();};
   makeDraggable(w);
-  return w;
-}
-
-// --- FORMAT HELPERS ---
-function formatTime(s) {
-  const m = Math.floor(s/60), sec = s%60;
-  return `${m}:${sec.toString().padStart(2,'0')}`;
-}
-
-// --- ANNOTATION SETUP ---
-let annoMode=false, drawing=false, canvasA, ctx, history=[];
-function initAnnotation() {
-  canvasA = document.createElement('canvas');
-  canvasA.width = window.innerWidth;
-  canvasA.height = window.innerHeight;
-  Object.assign(canvasA.style, {
-    position:'fixed', top:0, left:0, zIndex:2000
-  });
-  document.body.appendChild(canvasA);
-  ctx = canvasA.getContext('2d');
-  ctx.lineCap = 'round';
-  canvasA.addEventListener('mousedown', e => {
-    drawing=true;
-    ctx.beginPath();
-    ctx.moveTo(e.clientX,e.clientY);
-  });
-  canvasA.addEventListener('mousemove', e => {
-    if (!drawing) return;
-    ctx.lineTo(e.clientX,e.clientY);
-    ctx.stroke();
-  });
-  window.addEventListener('mouseup', () => {
-    if (!drawing) return;
-    drawing=false;
-    history.push(canvasA.toDataURL());
-  });
-}
-
-// --- TOOLBAR & CONTROLS HOOKUP ---
-const tools = document.getElementById('tools');
-document.getElementById('collapseBtn').onclick = () => {
-  const v = tools.style.display !== 'none';
-  tools.style.display = v ? 'none' : 'flex';
-  collapseBtn.innerText = v ? '▼' : '▲';
-};
-document.getElementById('annotateTool').onclick = () => {
-  annoMode = !annoMode;
-  annotateTool.style.background = annoMode ? '#008800' : '#0077C8';
-  document.getElementById('annoControls').style.display = annoMode ? 'flex' : 'none';
-  if (annoMode && !canvasA) initAnnotation();
-};
-document.getElementById('eraserBtn').onclick = () => {
-  ctx.globalCompositeOperation = 'destination-out';
-};
-document.getElementById('penColor').onchange = e => {
-  ctx.globalCompositeOperation = 'source-over';
-  ctx.strokeStyle = e.target.value;
-};
-document.getElementById('penSize').oninput = e => {
-  ctx.lineWidth = e.target.value;
-};
-document.getElementById('undoBtn').onclick = () => {
-  if (!history.length) return;
-  history.pop();
-  ctx.clearRect(0,0,canvasA.width,canvasA.height);
-  const last = history[history.length-1];
-  if (last) {
-    const img = new Image();
-    img.onload = ()=> ctx.drawImage(img,0,0);
-    img.src = last;
+  document.getElementById('canvas').appendChild(w);
+  // apply config if provided
+  if(config){
+    if(config.left) w.style.left=config.left;
+    if(config.top)  w.style.top=config.top;
+    if(config.width) w.style.width=config.width;
+    if(config.height)w.style.height=config.height;
+  } else {
+    w.style.left='20px'; w.style.top='20px';
   }
-};
-document.getElementById('saveBtn').onclick = () => {
-  html2canvas(document.getElementById('canvas')).then(c => {
-    if (canvasA) c.getContext('2d').drawImage(canvasA,0,0);
-    c.toBlob(blob => {
-      const a = document.createElement('a');
-      a.download = 'screenshot.png';
-      a.href = URL.createObjectURL(blob);
-      a.click();
+  return {w,cont,config};
+}
+
+// — Persist & restore layout —
+function saveLayout(){
+  const data=[];
+  document.querySelectorAll('.widget').forEach(w=>{
+    data.push({
+      type:w.dataset.type,
+      left:w.style.left,
+      top:w.style.top,
+      width:w.style.width,
+      height:w.style.height,
+      html:w.querySelector('.content').innerHTML
     });
   });
-};
-document.getElementById('settingsBtn').onclick = () => {
-  const tcol = prompt('Toolbar color (CSS):', getComputedStyle(document.documentElement).getPropertyValue('--toolbar-bg'));
-  const wcol = prompt('Widget header color:', getComputedStyle(document.documentElement).getPropertyValue('--widget-header-bg'));
-  if (tcol) document.documentElement.style.setProperty('--toolbar-bg', tcol);
-  if (wcol) document.documentElement.style.setProperty('--widget-header-bg', wcol);
-};
-
-// --- SELECT TOOL ---
-let selectMode=false;
-document.getElementById('selectTool').onclick = () => {
-  selectMode = !selectMode;
-  selectTool.style.background = selectMode ? '#008800' : '#0077C8';
-  document.querySelectorAll('.widget').forEach(w => {
-    w.onclick = e => {
-      if (!selectMode) return;
-      e.stopPropagation();
-      w.classList.toggle('selected');
-      w.style.boxShadow = w.classList.contains('selected')
-        ? '0 0 0 3px #FFB800'
-        : 'var(--widget-shadow)';
-    };
+  localStorage.setItem('layout',JSON.stringify(data));
+  alert('Layout saved!');
+}
+function loadLayout(){
+  const raw=localStorage.getItem('layout');
+  if(!raw)return;
+  JSON.parse(raw).forEach(o=>{
+    const {w,cont} = widgetRegistry[o.type](o);
+    cont.innerHTML=o.html;
+    w.style.width=o.width; w.style.height=o.height;
+    w.style.left=o.left; w.style.top=o.top;
   });
-};
+}
 
-// --- WIDGET REGISTRY ---
+// — Annotation overlay —
+let annoCanvas,annoCtx,annotating=false,draw=false,history=[];
+function initAnnotation(){
+  if(annoCanvas)return;
+  const cv=document.getElementById('canvas');
+  annoCanvas=document.createElement('canvas');
+  annoCanvas.width=cv.clientWidth; annoCanvas.height=cv.clientHeight;
+  Object.assign(annoCanvas.style,{position:'absolute',top:0,left:0,zIndex:400});
+  cv.appendChild(annoCanvas);
+  annoCtx=annoCanvas.getContext('2d');
+  annoCtx.lineCap='round';
+  annoCanvas.onmousedown=e=>{
+    draw=true; annoCtx.beginPath();
+    annoCtx.moveTo(e.offsetX,e.offsetY);
+  };
+  annoCanvas.onmousemove=e=>{
+    if(!draw)return;
+    annoCtx.lineTo(e.offsetX,e.offsetY);
+    annoCtx.stroke();
+  };
+  document.onmouseup=e=>{
+    if(!draw)return;
+    draw=false; history.push(annoCanvas.toDataURL());
+  };
+}
+
+// — Initialization —
+document.addEventListener('DOMContentLoaded',()=>{
+  // Toolbar controls
+  const collapseBtn=document.getElementById('collapseBtn');
+  const tools=document.getElementById('tools');
+  collapseBtn.onclick=()=>{
+    tools.style.display=(tools.style.display==='none')?'flex':'flex';
+    collapseBtn.innerText=(collapseBtn.innerText==='▲')?'▼':'▲';
+  };
+
+  // Settings panel
+  const panel=document.getElementById('settingsPanel');
+  document.getElementById('settingsBtn').onclick=()=>panel.style.display='block';
+  document.getElementById('closeSettings').onclick=()=>panel.style.display='none';
+  document.getElementById('themeToolbar').oninput=e=>{
+    document.documentElement.style.setProperty('--toolbar-bg',e.target.value);
+  };
+  document.getElementById('themeWidget').oninput=e=>{
+    document.documentElement.style.setProperty('--widget-header-bg',e.target.value);
+  };
+
+  // Annotation toggle
+  const annoBtn=document.getElementById('annotateTool');
+  annoBtn.onclick=()=>{
+    annotating=!annotating;
+    annoBtn.style.opacity=annotating?1:0.6;
+    document.getElementById('annoControls').style.display=annotating?'flex':'none';
+    initAnnotation();
+  };
+  document.getElementById('penColor').oninput=e=>annoCtx.strokeStyle=e.target.value;
+  document.getElementById('penSize').oninput=e=>annoCtx.lineWidth=e.target.value;
+  document.getElementById('eraserBtn').onclick=()=>annoCtx.globalCompositeOperation='destination-out';
+  document.getElementById('undoBtn').onclick=()=>{
+    if(!history.length)return;
+    history.pop();
+    annoCtx.clearRect(0,0,annoCanvas.width,annoCanvas.height);
+    const last=history[history.length-1];
+    if(last){
+      const img=new Image();
+      img.onload=()=>annoCtx.drawImage(img,0,0);
+      img.src=last;
+    }
+  };
+
+  // Save/Load
+  document.getElementById('saveBtn').onclick=saveLayout;
+  loadLayout();
+
+  // Widget picker
+  document.getElementById('widgetSelect').onchange=e=>{
+    const type=e.target.value;
+    if(type && widgetRegistry[type]) widgetRegistry[type]();
+    e.target.value='';
+  };
+});
+
+// — Widget implementations —
 const widgetRegistry = {
-  screenShare: () => {
-    const w = createWidget('Screen Share');
-    navigator.mediaDevices.getDisplayMedia({ video: true })
-      .then(s => {
-        const v = document.createElement('video');
-        v.srcObject = s; v.autoplay = true;
-        v.style.width='100%'; v.style.height='auto';
-        w.appendChild(v);
+  screenShare: cfg=>{
+    const {w,cont}=createWidget('Screen Share',cfg);
+    navigator.mediaDevices.getDisplayMedia({video:true})
+      .then(s=>{
+        const v=document.createElement('video');
+        v.srcObject=s; v.autoplay=true;
+        Object.assign(v.style,{width:'100%',height:'100%',objectFit:'cover'});
+        cont.appendChild(v);
       })
-      .catch(e => w.append('❌ '+e.message));
-    return w;
+      .catch(err=>cont.innerText='❌ '+err.message);
+    return {w,cont};
   },
 
-  setBackground: () => {
-    const c = prompt('Background color or image URL:');
-    if (!c) return;
-    const can = document.getElementById('canvas');
-    can.style.background = c.startsWith('http')
-      ? `url('${c}') center/cover no-repeat`
-      : c;
+  setBackground: ()=>{  
+    const color=prompt('Enter color or image URL:');  
+    if(color) document.getElementById('canvas').style.background =
+      color.startsWith('http')?`url('${color}')center/cover no-repeat`:color;
   },
 
-  text: () => {
-    const w = createWidget('Text');
-    const d = document.createElement('div');
-    d.contentEditable = true;
-    d.innerText = 'Click to edit…';
-    w.appendChild(d);
-    return w;
+  text: cfg=>{
+    const {w,cont}=createWidget('Text',cfg);
+    const d=document.createElement('div');
+    d.contentEditable=true;
+    d.style.minHeight='50px';
+    d.innerHTML=cfg?.text||'Click to edit…';
+    d.oninput=()=>w.dataset.text=d.innerHTML;
+    cont.appendChild(d);
+    return {w,cont};
   },
 
-  clock: () => {
-    const w = createWidget('Clock');
-    const d = document.createElement('div');
-    d.style.fontSize='1.2em';
-    w.appendChild(d);
-    setInterval(()=> d.innerText=new Date().toLocaleTimeString(),500);
-    return w;
+  clock: ()=>{  
+    const {w,cont}=createWidget('Clock');  
+    const d=document.createElement('div');  
+    d.style.fontSize='1.2em';  
+    cont.appendChild(d);  
+    setInterval(()=>d.innerText=new Date().toLocaleTimeString(),500);  
+    return {w,cont};  
   },
 
-  timer: () => {
-    const w = createWidget('Timer');
-    let s = 0;
-    const d = document.createElement('div');
-    d.innerText = formatTime(s);
-    w.appendChild(d);
-    const btn = document.createElement('button');
-    btn.innerText='Start/Stop';
-    let id;
-    btn.onclick = () => {
-      if (id) clearInterval(id), id=null;
-      else id = setInterval(()=>{ s++; d.innerText=formatTime(s); },1000);
+  timer: cfg=>{
+    const {w,cont}=createWidget('Timer',cfg);
+    let s=cfg?.seconds||0;
+    const d=document.createElement('div');
+    d.innerText=formatTime(s);
+    cont.appendChild(d);
+    const btn=document.createElement('button');
+    btn.innerText='▶️/⏸️';
+    let tid;
+    btn.onclick=()=>{
+      if(tid){clearInterval(tid);tid=null;}
+      else tid=setInterval(()=>{s++;d.innerText=formatTime(s);w.dataset.seconds=s;},1000);
     };
-    w.appendChild(btn);
-    return w;
+    cont.appendChild(btn);
+    return {w,cont};
   },
 
-  visualTimer: () => {
-    const w = createWidget('Visual Timer');
-    const total = parseInt(prompt('Total seconds:'),10)||60;
-    let rem = total;
-    const c = document.createElement('canvas');
-    c.width=c.height=120; w.appendChild(c);
-    const x = c.getContext('2d');
+  visualTimer: cfg=>{
+    const {w,cont}=createWidget('Visual Timer',cfg);
+    const total=cfg?.total||60;
+    let rem=cfg?.remaining??total;
+    const c=document.createElement('canvas');
+    c.width=c.height=120; cont.appendChild(c);
+    const x=c.getContext('2d');
     function draw(){
       x.clearRect(0,0,120,120);
-      const pct = rem/total;
+      const pct=rem/total;
       x.beginPath();
-      x.arc(60,60,54,-Math.PI/2,(-Math.PI/2)+2*Math.PI*pct);
+      x.arc(60,60,54,-Math.PI/2,-Math.PI/2+2*Math.PI*pct);
       x.lineWidth=10; x.stroke();
-      x.font='16px sans-serif';
-      x.textAlign='center'; x.textBaseline='middle';
+      x.font='16px sans-serif';x.textAlign='center';x.textBaseline='middle';
       x.fillText(formatTime(rem),60,60);
+      w.dataset.remaining=rem;
     }
     draw();
-    const id = setInterval(()=>{
-      if (rem>0){ rem--; draw(); }
-      else clearInterval(id);
+    const tid=setInterval(()=>{
+      if(rem>0){rem--;draw();}
+      else clearInterval(tid);
     },1000);
-    return w;
+    return {w,cont};
   },
 
-  eventCountdown: () => {
-    const w = createWidget('Countdown');
-    const when = new Date(prompt('Target date/time (YYYY-MM-DD HH:MM):'));
-    const d = document.createElement('div'); w.appendChild(d);
+  eventCountdown: cfg=>{
+    const {w,cont}=createWidget('Countdown',cfg);
+    const when=cfg?.when?new Date(cfg.when):new Date(prompt('Target (YYYY-MM-DD HH:MM):'));
+    w.dataset.when=when;
+    const d=document.createElement('div');cont.appendChild(d);
     function upd(){
-      const diff = when - new Date();
-      if(diff<=0){ d.innerText='🎉'; return; }
-      const days = Math.floor(diff/864e5);
-      const hrs  = Math.floor(diff%864e5/36e5);
-      const mins = Math.floor(diff%36e5/6e4);
-      const secs = Math.floor(diff%6e4/1000);
-      d.innerText = `${days}d ${hrs}h ${mins}m ${secs}s`;
+      const diff=when-new Date();
+      if(diff<=0){d.innerText='🎉';return;}
+      const d1=Math.floor(diff/864e5),h=Math.floor(diff%864e5/36e5),
+            m=Math.floor(diff%36e5/6e4),s=Math.floor(diff%6e4/1000);
+      d.innerText=`${d1}d ${h}h ${m}m ${s}s`;
     }
-    upd(); setInterval(upd,1000);
-    return w;
+    upd();setInterval(upd,1000);
+    return {w,cont};
   },
 
-  poll: () => {
-    const w = createWidget('Poll');
-    const q = prompt('Question:')||'...?';
-    const opts = prompt('Options (comma):','Yes,No').split(',');
-    const d = document.createElement('div');
-    d.innerHTML = `<strong>${q}</strong><br>`;
-    const counts = opts.map(_=>0);
+  poll: cfg=>{
+    const {w,cont}=createWidget('Poll',cfg);
+    const q=cfg?.q||prompt('Question:')||'...?';
+    const opts=cfg?.opts||prompt('Options, comma:','Yes,No').split(',');
+    w.dataset.q=q;w.dataset.opts=opts.join(',');
+    const out=document.createElement('div');
+    out.innerHTML=`<strong>${q}</strong><br>`;
+    const counts=(cfg?.counts)||opts.map(_=>0);
     opts.forEach((o,i)=>{
-      const btn = document.createElement('button');
-      btn.innerText = `${o.trim()} (0)`;
-      btn.onclick = ()=>{
-        counts[i]++; btn.innerText=`${o.trim()} (${counts[i]})`;
+      const btn=document.createElement('button');
+      function update(){
+        btn.innerText=`${o.trim()} (${counts[i]})`;
+      }
+      btn.onclick=()=>{
+        counts[i]++;w.dataset.counts=counts.join(',');update();
       };
-      d.appendChild(btn);
-      d.appendChild(document.createElement('br'));
+      update();
+      out.appendChild(btn);out.appendChild(document.createElement('br'));
     });
-    w.appendChild(d);
-    return w;
+    cont.appendChild(out);
+    return {w,cont};
   },
 
-  timetable: () => {
-    const w = createWidget('Timetable');
-    const tbl = document.createElement('table');
-    tbl.border=1;
-    tbl.innerHTML = `
+  timetable: cfg=>{
+    const {w,cont}=createWidget('Timetable',cfg);
+    const tbl=document.createElement('table');
+    tbl.border=1;tbl.contentEditable=true;
+    tbl.innerHTML=cfg?.html||`
       <tr><th>Time</th><th>Activity</th></tr>
-      <tr><td>8:00</td><td>…</td></tr>
-      <tr><td>9:00</td><td>…</td></tr>
-    `;
-    tbl.contentEditable = 'true';
-    w.appendChild(tbl);
-    return w;
+      <tr><td>8:00</td><td>…</td></tr>`;
+    tbl.oninput=()=>w.dataset.html=tbl.innerHTML;
+    cont.appendChild(tbl);
+    return {w,cont};
   },
 
-  randomizer: () => {
-    const w = createWidget('Randomizer');
-    const items = prompt('Items, comma:','Alice,Bob,Carol').split(',');
-    const btn = document.createElement('button');
-    const d = document.createElement('div');
+  randomizer: cfg=>{
+    const {w,cont}=createWidget('Randomizer',cfg);
+    const items=cfg?.items||prompt('Items, comma:','Alice,Bob,Carol').split(',');
+    w.dataset.items=items.join(',');
+    const btn=document.createElement('button'),d=document.createElement('div');
     btn.innerText='Pick one';
-    btn.onclick = ()=> d.innerText = items[Math.floor(Math.random()*items.length)].trim();
-    w.appendChild(btn);
-    w.appendChild(d);
-    return w;
+    btn.onclick=()=>d.innerText=items[Math.floor(Math.random()*items.length)].trim();
+    cont.append(btn,d);
+    return {w,cont};
   },
 
-  groupMaker: () => {
-    const w = createWidget('Group Maker');
-    const names = prompt('Names, comma:','A,B,C,D').split(',');
-    const size = parseInt(prompt('Group size:'),10)||2;
-    const btn = document.createElement('button');
-    const d = document.createElement('div');
+  groupMaker: cfg=>{
+    const {w,cont}=createWidget('Group Maker',cfg);
+    const names=cfg?.names||prompt('Names, comma:','A,B,C').split(',');
+    const size=cfg?.size||parseInt(prompt('Group size:'),10)||2;
+    w.dataset.names=names.join(',');w.dataset.size=size;
+    const btn=document.createElement('button'),d=document.createElement('div');
     btn.innerText='Make groups';
-    btn.onclick = ()=>{
-      const arr = names.slice(), out=[];
-      while(arr.length) out.push(arr.splice(0,size));
-      d.innerHTML = out.map(g=>g.join(', ')).join('<br>');
+    btn.onclick=()=>{
+      const arr=names.slice(),out=[];
+      while(arr.length)out.push(arr.splice(0,size));
+      d.innerHTML=out.map(g=>g.join(', ')).join('<br>');
     };
-    w.appendChild(btn);
-    w.appendChild(d);
-    return w;
+    cont.append(btn,d);
+    return {w,cont};
   },
 
-  dice: () => {
-    const w = createWidget('Dice');
-    const btn = document.createElement('button');
-    const d = document.createElement('div');
-    btn.innerText='Roll 🎲';
-    btn.onclick = ()=> d.innerText = Math.floor(Math.random()*6)+1;
-    w.appendChild(btn);
-    w.appendChild(d);
-    return w;
-  },
+  dice: ()=>{const {w,cont}=createWidget('Dice');
+    const btn=document.createElement('button'),d=document.createElement('div');
+    btn.innerText='Roll 🎲';btn.onclick=()=>d.innerText=Math.floor(Math.random()*6)+1;
+    cont.append(btn,d);return{w,cont};},
 
-  trafficLight: () => {
-    const w = createWidget('Traffic Light');
-    const box = document.createElement('div');
+  trafficLight: ()=>{const {w,cont}=createWidget('Traffic Light');
+    const box=document.createElement('div'),circs=[];
     box.className='traffic-box';
-    const circles=[];
     ['red','yellow','green'].forEach(c=>{
-      const cEl = document.createElement('div');
-      cEl.className='traffic-light-circle';
-      box.appendChild(cEl);
-      circles.push(cEl);
+      const cc=document.createElement('div');cc.className='traffic-light-circle';
+      box.append(cc);circs.push(cc);
     });
-    let idx=0;
-    const btn = document.createElement('button');
-    btn.innerText='Next';
-    btn.onclick = ()=>{
-      circles.forEach(c=>c.style.background='#333');
-      circles[idx].style.background=['red','yellow','green'][idx];
+    let idx=0;const btn=document.createElement('button');
+    btn.innerText='Next';btn.onclick=()=>{
+      circs.forEach(c=>c.style.background='#444');
+      circs[idx].style.background=['red','yellow','green'][idx];
       idx=(idx+1)%3;
     };
-    w.appendChild(box);
-    w.appendChild(btn);
-    return w;
-  },
+    cont.append(box,btn);return{w,cont};},
 
-  scoreboard: () => {
-    const w = createWidget('Scoreboard');
-    const teams = prompt('Teams, comma:','A,B').split(',');
-    const cont = document.createElement('div');
+  scoreboard: ()=>{const {w,cont}=createWidget('Scoreboard');
+    const teams=prompt('Teams, comma:','A,B').split(',');
     teams.forEach(t=>{
-      let score=0;
-      const row = document.createElement('div');
-      const lbl = document.createElement('span');
-      const disp= document.createElement('span');
-      const plus=document.createElement('button');
-      const minus=document.createElement('button');
+      let sc=0;
+      const row=document.createElement('div');
+      const lbl=document.createElement('span'),disp=document.createElement('span');
+      const plus=document.createElement('button'),minus=document.createElement('button');
       lbl.innerText=t.trim()+': ';
-      disp.innerText=score;
-      plus.innerText='+';
-      minus.innerText='-';
-      plus.onclick=()=>disp.innerText=++score;
-      minus.onclick=()=>disp.innerText=--score;
-      row.append(lbl, disp, plus, minus);
-      cont.appendChild(row);
+      disp.innerText=sc;
+      plus.innerText='+';minus.innerText='-';
+      plus.onclick=()=>disp.innerText=++sc;
+      minus.onclick=()=>disp.innerText=--sc;
+      row.append(lbl,disp,plus,minus);cont.append(row);
     });
-    w.appendChild(cont);
-    return w;
-  },
+    return{w,cont};},
 
-  soundLevel: () => {
-    const w = createWidget('Sound Level');
-    let threshold = 0.2;
-    const bar = document.createElement('div');
-    bar.style.height='20px'; bar.style.width='0'; bar.style.background='green';
-    const slider = document.createElement('input');
-    slider.type='range'; slider.min=0; slider.max=1; slider.step=0.01; slider.value=threshold;
-    const label = document.createElement('label');
-    label.innerText = `Threshold: ${threshold}`;
-    slider.oninput = () => {
-      threshold = parseFloat(slider.value);
-      label.innerText = `Threshold: ${threshold}`;
-    };
-    w.append(label, slider, bar);
-    navigator.mediaDevices.getUserMedia({ audio:true }).then(stream=>{
-      const aCtx = new AudioContext();
-      const src = aCtx.createMediaStreamSource(stream);
-      const analyser = aCtx.createAnalyser();
-      src.connect(analyser);
-      const data = new Uint8Array(analyser.fftSize);
-      function upd(){
-        analyser.getByteTimeDomainData(data);
-        let sum=0; data.forEach(v=> sum += Math.abs(v-128));
-        const vol = Math.min(1, sum/data.length/128);
-        bar.style.width = (vol*100)+'%';
-        bar.style.background = vol >= threshold ? 'green' : 'red';
+  soundLevel: cfg=>{
+    const {w,cont}=createWidget('Sound Level',cfg);
+    let g=cfg?.gThreshold||0.2,y=cfg?.yThreshold||0.5;
+    cont.innerHTML=`
+      <label>Green up to <input type="number" min=0 max=1 step=0.01 value="${g}" id="gIn"/></label>
+      <label>Yellow up to <input type="number" min=0 max=1 step=0.01 value="${y}" id="yIn"/></label>
+      <div id="bar"></div>
+    `;
+    const bar=cont.querySelector('#bar');
+    Object.assign(bar.style,{height:'20px',width:'0',marginTop:'8px'});
+    cont.querySelector('#gIn').oninput=e=>g=parseFloat(e.target.value);
+    cont.querySelector('#yIn').oninput=e=>y=parseFloat(e.target.value);
+    navigator.mediaDevices.getUserMedia({audio:true}).then(stream=>{
+      const ac=new AudioContext(),src=ac.createMediaStreamSource(stream),
+            an=ac.createAnalyser(),data=new Uint8Array(an.fftSize);
+      src.connect(an);
+      (function upd(){
+        an.getByteTimeDomainData(data);
+        let sum=0;data.forEach(v=>sum+=Math.abs(v-128));
+        const vol=Math.min(1,sum/data.length/128);
+        bar.style.width=(vol*100)+'%';
+        bar.style.background=vol<=g?'green':vol<=y?'yellow':'red';
         requestAnimationFrame(upd);
-      }
-      upd();
+      })();
     });
-    return w;
+    return{w,cont};
   },
 
-  workSymbols: () => {
-    const w = createWidget('Work Symbols');
-    const syms=['✏️','☕️','✅','🔴'];
-    let idx=0;
-    const btn=document.createElement('button');
-    const d=document.createElement('div');
-    d.style.fontSize='2rem';
-    btn.innerText='Next';
-    btn.onclick = ()=>{ d.innerText=syms[idx]; idx=(idx+1)%syms.length; };
-    w.appendChild(d);
-    w.appendChild(btn);
-    return w;
-  },
+  workSymbols: ()=>{const {w,cont}=createWidget('Work Symbols');
+    const syms=['✏️','☕️','✅','🔴'];let i=0;
+    const btn=document.createElement('button'),d=document.createElement('div');
+    d.style.fontSize='2rem';btn.innerText='Next';
+    btn.onclick=()=>{d.innerText=syms[i];i=(i+1)%syms.length;};
+    cont.append(d,btn);return{w,cont};},
 
-  stickers: () => {
-    const w = createWidget('Stickers');
-    const url = prompt('Sticker URL:');
-    if(!url) return;
-    const img=document.createElement('img');
-    img.src=url;
-    w.appendChild(img);
-    return w;
-  },
+  stickers: ()=>{const {w,cont}=createWidget('Stickers');
+    const url=prompt('Sticker URL:');if(!url)return{w,cont};
+    const img=document.createElement('img');img.src=url;cont.append(img);
+    return{w,cont};},
 
-  image: () => {
-    const w = createWidget('Image');
-    const url = prompt('Image URL:');
-    if(!url) return;
-    const img=document.createElement('img');
-    img.src=url;
-    w.appendChild(img);
-    return w;
-  },
+  image: ()=>{const {w,cont}=createWidget('Image');
+    const url=prompt('Image URL:');if(!url)return{w,cont};
+    const img=document.createElement('img');img.src=url;cont.append(img);
+    return{w,cont};},
 
-  video: () => {
-    const w = createWidget('Video');
-    const url = prompt('Video embed URL:');
-    if(!url) return;
+  video: ()=>{const {w,cont}=createWidget('Video');
+    const url=prompt('Video embed URL:');if(!url)return{w,cont};
     const ifr=document.createElement('iframe');
-    ifr.src=url; ifr.width='100%'; ifr.height='200';
-    w.appendChild(ifr);
-    return w;
-  },
+    ifr.src=url;ifr.style.width='100%';ifr.style.height='200px';ifr.allowFullScreen=false;
+    cont.append(ifr);return{w,cont};},
 
-  embed: () => {
-    const w = createWidget('Embed');
-    const ifr = document.createElement('iframe');
-    ifr.style.width='100%'; ifr.style.height='200px';
-    w.appendChild(ifr);
-    // initial URL
-    function setURL(u){
-      ifr.src = u;
-    }
-    const url = prompt('URL to embed:');
-    if (url) setURL(url);
-    // edit button:
-    w.querySelector('.edit').onclick = () => {
-      const nu = prompt('New URL:', ifr.src);
-      if (nu) setURL(nu);
+  embed: cfg=>{
+    const {w,cont}=createWidget('Embed',cfg);
+    const ifr=document.createElement('iframe');
+    Object.assign(ifr.style,{width:'100%',height:'200px'});
+    cont.append(ifr);
+    const setURL=u=>{
+      // auto-convert Google Slides
+      if(u.includes('docs.google.com/presentation')){
+        u=u.replace('/edit','/embed').split('&')[0];
+      }
+      ifr.src=u;
+      w.dataset.url=u;
     };
-    return w;
+    if(cfg?.url) setURL(cfg.url);
+    w.querySelector('.edit').onclick=()=>{
+      const u=prompt('Embed URL:',w.dataset.url||'');
+      if(u) setURL(u);
+    };
+    return{w,cont};
   },
 
-  hyperlink: () => {
-    const w = createWidget('Hyperlink');
-    const url = prompt('URL:');
-    if(!url) return w;
-    const text = prompt('Link text:')||url;
-    const a=document.createElement('a');
-    a.href=url; a.target='_blank'; a.innerText=text;
-    w.appendChild(a);
-    return w;
-  },
+  hyperlink: ()=>{const {w,cont}=createWidget('Hyperlink');
+    const url=prompt('URL:'),text=prompt('Link text:')||url;
+    if(url){const a=document.createElement('a');a.href=url;a.target='_blank';a.innerText=text;cont.append(a);}
+    return{w,cont};},
 
-  restroom: () => {
-    const w = createWidget('Rest Room');
-    let allowed=false;
-    const disp=document.createElement('div');
-    disp.style.fontSize='1.5em'; disp.style.textAlign='center';
+  restroom: ()=>{const {w,cont}=createWidget('Rest Room');
+    let ok=false;
+    const d=document.createElement('div');
+    d.style.fontSize='1.5em';d.style.textAlign='center';
     const btn=document.createElement('button');
-    btn.innerText='Toggle';
-    btn.onclick = ()=>{ allowed=!allowed; render(); };
-    function render(){
-      disp.innerText = allowed
-        ? '✅ Restroom Allowed'
-        : '❌ Restroom Closed';
-      disp.style.color = allowed ? 'green' : 'red';
-    }
-    w.appendChild(disp);
-    w.appendChild(btn);
-    render();
-    return w;
-  }
-};
-
-// --- WIDGET PICKER HOOKUP ---
-document.getElementById('widgetSelect').onchange = e => {
-  const t = e.target.value;
-  if (t && widgetRegistry[t]) widgetRegistry[t]();
-  e.target.value = '';
+    btn.innerText='Toggle';btn.onclick=()=>{
+      ok=!ok;d.innerText=ok?'✅ Allowed':'❌ Closed';d.style.color=ok?'green':'red';
+    };
+    d.innerText='❌ Closed';cont.append(d,btn);
+    return{w,cont};}
 };
