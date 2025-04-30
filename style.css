@@ -6,20 +6,34 @@
   --widget-radius: 8px;
   --widget-shadow: 0 4px 8px rgba(0,0,0,0.1);
 }
-* { box-sizing: border-box; margin:0; padding:0; }
-body,html { width:100%;height:100%;overflow:hidden; font-family:sans-serif; background:#FCF3CF; }
+* { box-sizing:border-box; margin:0; padding:0; }
+body,html { width:100%; height:100%; overflow:hidden; font-family:sans-serif; background:#FCF3CF; }
+
+/* Screen tabs */
+#screenTabs {
+  position:fixed; top:10px; left:50%; transform:translateX(-50%);
+  display:flex; gap:8px; z-index:1200;
+}
+.screenTab, #addScreen {
+  padding:6px 12px; border-radius:4px;
+  background:var(--toolbar-bg); color:var(--toolbar-fg);
+  cursor:pointer; border:none;
+}
+.screenTab.active { border:2px solid var(--widget-header-bg); }
+
+/* Canvas */
 #canvas {
   position:absolute; top:0; left:0;
   width:100%; height:100%;
   background:#fff; overflow:auto;
 }
 
-/* toolbar */
+/* Toolbar */
 #toolbar {
   position:fixed; bottom:0; left:50%; transform:translateX(-50%);
   background:var(--toolbar-bg); color:var(--toolbar-fg);
   padding:6px; border-top-left-radius:8px;border-top-right-radius:8px;
-  display:flex; align-items:center; z-index:1000;
+  display:flex; align-items:center; z-index:1100;
 }
 #toolbar button, #toolbar select {
   margin:0 4px; padding:6px;
@@ -28,17 +42,17 @@ body,html { width:100%;height:100%;overflow:hidden; font-family:sans-serif; back
 }
 #toolbar button:hover, #toolbar select:hover { opacity:0.7; }
 
-/* annotation controls */
+/* Annotation controls */
 #annoControls {
   position:fixed; bottom:50px; left:50%; transform:translateX(-50%);
   display:none; align-items:center;
   background:rgba(255,255,255,0.9);
-  padding:6px; border-radius:6px; z-index:1000;
+  padding:6px; border-radius:6px; z-index:1100;
 }
 #annoControls button { font-size:1.2em; margin-right:8px; }
 #annoControls label { margin-right:8px; font-size:0.9em; }
 
-/* settings panel */
+/* Settings panel */
 #settingsPanel {
   position:fixed; top:20%; left:50%; transform:translateX(-50%);
   background:#fff; padding:16px; border-radius:8px;
@@ -48,7 +62,7 @@ body,html { width:100%;height:100%;overflow:hidden; font-family:sans-serif; back
 #settingsPanel label { display:block; margin:4px 0; }
 #settingsPanel button { margin-top:8px; padding:6px 12px; }
 
-/* widget */
+/* Widgets */
 .widget {
   position:absolute;
   background:#fff;
@@ -68,23 +82,18 @@ body,html { width:100%;height:100%;overflow:hidden; font-family:sans-serif; back
 .widget .header span { cursor:pointer; }
 .widget .header span:hover { opacity:0.8; }
 
+/* Content fills widget */
 .widget .content {
   padding:8px;
+  display:flex; flex-direction:column;
   height: calc(100% - 40px);
-  display: flex;
-  flex-direction: column;
 }
-.widget .content > iframe,
-.widget .content > video,
-.widget .content > img,
-.widget .content > canvas {
-  flex: 1;
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
+.widget .content > * {
+  flex:1; width:100%; height:100%;
+  object-fit:contain; margin-top:4px;
 }
 
-/* traffic light */
+/* Traffic Light */
 .traffic-box {
   background:#222; padding:8px; border-radius:4px; text-align:center;
 }
