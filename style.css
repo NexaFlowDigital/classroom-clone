@@ -1,86 +1,94 @@
-/* reset */
-* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --toolbar-bg: #00539C;
+  --toolbar-fg: #fff;
+  --widget-header-bg: #0077C8;
+  --widget-header-fg: #fff;
+  --widget-border-radius: 8px;
+  --widget-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+* { box-sizing: border-box; margin:0; padding:0; }
 body, html { width:100%; height:100%; overflow:hidden; font-family:sans-serif; }
-
-/* canvas area */
 #canvas {
-  position: absolute;
-  top: 0; left: 0;
-  width: 100%; height: 100%;
-  background: #fafafa;
-  overflow: auto;
+  position:absolute; top:0; left:0;
+  width:100%; height:100%;
+  background:#fafafa; overflow:auto;
 }
 
-/* toolbar bottom-center */
+/* Toolbar */
 #toolbar {
-  position: fixed;
-  bottom: 0; left: 50%;
-  transform: translateX(-50%);
-  background: rgba(50,50,50,0.9);
-  padding: 6px;
-  border-top-left-radius: 8px;
-  border-top-right-radius: 8px;
-  display: flex; align-items: center;
+  position:fixed; bottom:0; left:50%;
+  transform:translateX(-50%);
+  background:var(--toolbar-bg);
+  padding:6px; border-top-left-radius:8px; border-top-right-radius:8px;
+  display:flex; align-items:center;
+  z-index:1000;
 }
-#toolbar #tools { display: flex; align-items: center; }
 #toolbar button, #toolbar select {
-  margin: 0 4px;
-  padding: 6px 8px;
-  background: #666; color: #fff;
-  border: none; border-radius: 4px;
-  cursor: pointer;
+  margin:0 4px; padding:6px 8px;
+  background:var(--widget-header-bg);
+  color:var(--toolbar-fg);
+  border:none; border-radius:4px;
+  cursor:pointer;
 }
-#toolbar button:hover, #toolbar select:hover { background: #777; }
+#toolbar button#collapseBtn { background:#004780; }
+#toolbar button:hover, #toolbar select:hover { background:#0065A5; }
 
-/* collapse button */
-#collapseBtn { background: #444; }
-
-/* annotation controls */
+/* Annotation controls */
 #annoControls {
-  position: fixed;
-  bottom: 50px; left: 50%;
-  transform: translateX(-50%);
-  background: rgba(255,255,255,0.95);
-  padding: 6px 10px;
-  border-radius: 6px;
-  display: none;
-  align-items: center;
+  position:fixed; bottom:50px; left:50%;
+  transform:translateX(-50%);
+  background:rgba(255,255,255,0.95);
+  padding:6px 10px; border-radius:6px;
+  display:none; align-items:center;
+  z-index:1000;
 }
 #annoControls input, #annoControls button {
-  margin-right: 6px;
+  margin-right:6px;
+  padding:4px 6px;
 }
 
-/* widget container */
+/* Widget container */
 .widget {
-  position: absolute;
-  background: #fff;
-  border: 1px solid #333;
-  padding: 8px;
-  min-width: 150px;
-  resize: both;
-  overflow: auto;
-  cursor: move;
+  position:absolute;
+  background:#fff;
+  border-radius:var(--widget-border-radius);
+  box-shadow:var(--widget-shadow);
+  padding:8px;
+  min-width:160px;
+  resize:both; overflow:auto;
+  cursor:move;
+  z-index:500;
 }
 .widget .header {
-  font-weight: bold;
-  margin-bottom: 4px;
-  cursor: grab;
+  background:var(--widget-header-bg);
+  color:var(--widget-header-fg);
+  padding:4px 8px;
+  font-weight:bold;
+  border-top-left-radius:var(--widget-border-radius);
+  border-top-right-radius:var(--widget-border-radius);
+  display:flex; justify-content:space-between;
+  cursor:grab;
 }
-.widget .close {
-  position: absolute; top: 4px; right: 6px;
-  cursor: pointer;
+.widget .header .close,
+.widget .header .edit {
+  margin-left:8px;
+  cursor:pointer;
+}
+.widget .header .edit:hover,
+.widget .header .close:hover { opacity:0.8; }
+
+.widget iframe, .widget img, .widget video, .widget canvas {
+  width:100%; height:100%;
+  max-height:200px; border:none;
+  margin-top:8px;
 }
 
-/* improved traffic light */
+/* Traffic Light */
 .traffic-box {
-  background: #222;
-  padding: 10px;
-  border-radius: 8px;
+  background:#222; padding:10px; border-radius:4px; text-align:center;
 }
 .traffic-light-circle {
-  width: 30px; height: 30px;
-  border-radius: 50%;
-  background: #333;
-  margin: 6px auto;
-  border: 2px solid #111;
+  width:30px; height:30px;
+  background:#333; border-radius:50%;
+  margin:6px auto; border:2px solid #111;
 }
