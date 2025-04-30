@@ -6,47 +6,47 @@
   --widget-radius: 8px;
   --widget-shadow: 0 4px 8px rgba(0,0,0,0.1);
 }
-* { box-sizing:border-box; margin:0; padding:0; }
-body,html { width:100%;height:100%;overflow:hidden; font-family:sans-serif; background:#FCF3CF;}
+* { box-sizing: border-box; margin:0; padding:0; }
+body,html { width:100%;height:100%;overflow:hidden; font-family:sans-serif; background:#FCF3CF; }
 #canvas {
-  position:absolute;top:0;left:0;
-  width:100%;height:100%;
-  background:#fff;overflow:auto;
+  position:absolute; top:0; left:0;
+  width:100%; height:100%;
+  background:#fff; overflow:auto;
 }
 
 /* toolbar */
 #toolbar {
-  position:fixed;bottom:0;left:50%;transform:translateX(-50%);
+  position:fixed; bottom:0; left:50%; transform:translateX(-50%);
   background:var(--toolbar-bg); color:var(--toolbar-fg);
   padding:6px; border-top-left-radius:8px;border-top-right-radius:8px;
-  display:flex;align-items:center;z-index:1000;
+  display:flex; align-items:center; z-index:1000;
 }
-#toolbar button,#toolbar select {
+#toolbar button, #toolbar select {
   margin:0 4px; padding:6px;
-  background:none;border:none;color:var(--toolbar-fg);
-  cursor:pointer;font-size:1.1em;
+  background:none; border:none; color:var(--toolbar-fg);
+  cursor:pointer; font-size:1.1em;
 }
-#toolbar button:hover,#toolbar select:hover { opacity:0.7; }
+#toolbar button:hover, #toolbar select:hover { opacity:0.7; }
 
 /* annotation controls */
 #annoControls {
-  position:fixed;bottom:50px;left:50%;transform:translateX(-50%);
-  display:none;align-items:center;
+  position:fixed; bottom:50px; left:50%; transform:translateX(-50%);
+  display:none; align-items:center;
   background:rgba(255,255,255,0.9);
-  padding:6px;border-radius:6px;z-index:1000;
+  padding:6px; border-radius:6px; z-index:1000;
 }
-#annoControls label{margin-right:8px;font-size:0.9em;}
-#annoControls button{font-size:1.2em;}
+#annoControls button { font-size:1.2em; margin-right:8px; }
+#annoControls label { margin-right:8px; font-size:0.9em; }
 
 /* settings panel */
 #settingsPanel {
-  position:fixed;top:20%;left:50%;transform:translateX(-50%);
+  position:fixed; top:20%; left:50%; transform:translateX(-50%);
   background:#fff; padding:16px; border-radius:8px;
-  box-shadow:var(--widget-shadow);display:none;z-index:2000;
+  box-shadow:var(--widget-shadow); display:none; z-index:2000;
 }
-#settingsPanel h3{margin-bottom:8px;}
-#settingsPanel label{display:block;margin:4px 0;}
-#settingsPanel button{margin-top:8px;padding:6px 12px;}
+#settingsPanel h3 { margin-bottom:8px; }
+#settingsPanel label { display:block; margin:4px 0; }
+#settingsPanel button { margin-top:8px; padding:6px 12px; }
 
 /* widget */
 .widget {
@@ -54,23 +54,34 @@ body,html { width:100%;height:100%;overflow:hidden; font-family:sans-serif; back
   background:#fff;
   border-radius:var(--widget-radius);
   box-shadow:var(--widget-shadow);
-  padding:0; overflow:hidden;
-  resize:both;cursor:move; z-index:500;
+  overflow:hidden; resize:both; cursor:move; z-index:500;
 }
 .widget .header {
   background:var(--widget-header-bg);
   color:var(--widget-header-fg);
-  padding:4px 8px;
-  display:flex;justify-content:space-between;
-  align-items:center;
+  padding:6px 8px; display:flex; justify-content:space-between;
+  align-items:center; font-weight:bold;
   border-top-left-radius:var(--widget-radius);
   border-top-right-radius:var(--widget-radius);
-  cursor:grab;font-weight:bold;
+  cursor:grab;
 }
-.widget .header span {cursor:pointer;}
-.widget .content {padding:8px;overflow:auto;}
-.widget iframe, .widget img, .widget video, .widget canvas {
-  width:100%;height:auto;max-height:200px;border:none;
+.widget .header span { cursor:pointer; }
+.widget .header span:hover { opacity:0.8; }
+
+.widget .content {
+  padding:8px;
+  height: calc(100% - 40px);
+  display: flex;
+  flex-direction: column;
+}
+.widget .content > iframe,
+.widget .content > video,
+.widget .content > img,
+.widget .content > canvas {
+  flex: 1;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
 /* traffic light */
@@ -78,6 +89,6 @@ body,html { width:100%;height:100%;overflow:hidden; font-family:sans-serif; back
   background:#222; padding:8px; border-radius:4px; text-align:center;
 }
 .traffic-light-circle {
-  width:30px;height:30px;margin:6px auto;
-  border-radius:50%;background:#444;border:2px solid #111;
+  width:30px; height:30px; margin:6px auto;
+  border-radius:50%; background:#444; border:2px solid #111;
 }
