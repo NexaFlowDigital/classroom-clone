@@ -6,91 +6,75 @@
   --widget-radius: 8px;
   --widget-shadow: 0 4px 8px rgba(0,0,0,0.1);
 }
-* { box-sizing:border-box; margin:0; padding:0; }
-body,html { width:100%; height:100%; overflow:hidden; font-family:sans-serif; background:#FCF3CF; }
+* { box-sizing:border-box; margin:0; padding:0 }
+body,html { width:100%; height:100%; overflow:hidden; font-family:sans-serif; background:#FCF3CF }
+#canvas { position:absolute; top:0; left:0; width:100%; height:100%; background:#fff; overflow:auto }
 
-/* Screen tabs */
+/* Screen Tabs */
 #screenTabs {
   position:fixed; top:10px; left:50%; transform:translateX(-50%);
-  display:flex; gap:8px; z-index:1200;
+  display:flex; gap:6px; z-index:1200;
 }
 .screenTab, #addScreen {
-  padding:6px 12px; border-radius:4px;
-  background:var(--toolbar-bg); color:var(--toolbar-fg);
-  cursor:pointer; border:none;
+  padding:4px 8px; border-radius:4px; background:var(--toolbar-bg);
+  color:var(--toolbar-fg); cursor:pointer; border:none;
 }
-.screenTab.active { border:2px solid var(--widget-header-bg); }
-
-/* Canvas */
-#canvas {
-  position:absolute; top:0; left:0;
-  width:100%; height:100%;
-  background:#fff; overflow:auto;
-}
+.screenTab.active { box-shadow:0 0 0 2px var(--widget-header-bg) }
 
 /* Toolbar */
 #toolbar {
   position:fixed; bottom:0; left:50%; transform:translateX(-50%);
   background:var(--toolbar-bg); color:var(--toolbar-fg);
-  padding:6px; border-top-left-radius:8px;border-top-right-radius:8px;
+  padding:6px; border-top-left-radius:8px; border-top-right-radius:8px;
   display:flex; align-items:center; z-index:1100;
 }
 #toolbar button, #toolbar select {
-  margin:0 4px; padding:6px;
-  background:none; border:none; color:var(--toolbar-fg);
-  cursor:pointer; font-size:1.1em;
+  margin:0 4px; padding:6px; background:none; border:none;
+  color:var(--toolbar-fg); cursor:pointer; font-size:1.1em;
 }
-#toolbar button:hover, #toolbar select:hover { opacity:0.7; }
+#toolbar button:hover, #toolbar select:hover { opacity:0.7 }
 
-/* Annotation controls */
+/* Annotation Controls */
 #annoControls {
   position:fixed; bottom:50px; left:50%; transform:translateX(-50%);
-  display:none; align-items:center;
-  background:rgba(255,255,255,0.9);
+  display:none; align-items:center; background:rgba(255,255,255,0.9);
   padding:6px; border-radius:6px; z-index:1100;
 }
-#annoControls button { font-size:1.2em; margin-right:8px; }
-#annoControls label { margin-right:8px; font-size:0.9em; }
+#annoControls button { margin-right:6px; font-size:1.2em }
+#annoControls input { margin-right:6px }
 
-/* Settings panel */
+/* Settings Panel */
 #settingsPanel {
   position:fixed; top:20%; left:50%; transform:translateX(-50%);
-  background:#fff; padding:16px; border-radius:8px;
-  box-shadow:var(--widget-shadow); display:none; z-index:2000;
+  background:#fff; padding:12px; border-radius:8px;
+  box-shadow:var(--widget-shadow); display:none; z-index:2100;
 }
-#settingsPanel h3 { margin-bottom:8px; }
-#settingsPanel label { display:block; margin:4px 0; }
-#settingsPanel button { margin-top:8px; padding:6px 12px; }
+#settingsPanel h3 { margin-bottom:8px }
+#settingsPanel label { display:block; margin:4px 0 }
+#settingsPanel button { margin-top:8px; padding:6px }
 
 /* Widgets */
 .widget {
-  position:absolute;
-  background:#fff;
-  border-radius:var(--widget-radius);
-  box-shadow:var(--widget-shadow);
-  overflow:hidden; resize:both; cursor:move; z-index:500;
+  position:absolute; background:#fff; border-radius:var(--widget-radius);
+  box-shadow:var(--widget-shadow); overflow:hidden; resize:both;
+  cursor:move; z-index:500;
 }
 .widget .header {
   background:var(--widget-header-bg);
   color:var(--widget-header-fg);
   padding:6px 8px; display:flex; justify-content:space-between;
-  align-items:center; font-weight:bold;
+  align-items:center; font-weight:bold; cursor:grab;
   border-top-left-radius:var(--widget-radius);
   border-top-right-radius:var(--widget-radius);
-  cursor:grab;
 }
-.widget .header span { cursor:pointer; }
-.widget .header span:hover { opacity:0.8; }
-
-/* Content fills widget */
+.widget .header span { cursor:pointer }
 .widget .content {
-  padding:8px;
-  display:flex; flex-direction:column;
+  padding:6px; display:flex; flex-direction:column;
   height: calc(100% - 40px);
 }
 .widget .content > * {
-  flex:1; width:100%; height:100%;
-  object-fit:contain; margin-top:4px;
+  flex:1; width:100%; height:100%; object-fit:contain;
+  margin-top:4px;
 }
 
 /* Traffic Light */
