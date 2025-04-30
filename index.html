@@ -48,16 +48,17 @@
 
   <!-- Annotation controls -->
   <div id="annoControls">
-    <label>Color <input type="color" id="penColor" value="#e74c3c"/></label>
-    <label>Size <input type="range" id="penSize" min="1" max="20" value="4"/></label>
+    <button id="penBtn" title="Pen">✏️</button>
+    <label><input type="color" id="penColor" value="#e74c3c"/> Color</label>
+    <label><input type="range" id="penSize" min="1" max="20" value="4"/> Size</label>
     <button id="eraserBtn" title="Eraser">🧹</button>
   </div>
 
   <!-- Settings panel -->
   <div id="settingsPanel">
     <h3>Theme Settings</h3>
-    <label>Toolbar bg <input type="color" id="themeToolbar"/></label>
-    <label>Widget header bg <input type="color" id="themeWidget"/></label>
+    <label>Toolbar bg: <input type="color" id="themeToolbar"/></label>
+    <label>Widget header bg: <input type="color" id="themeWidget"/></label>
     <button id="closeSettings">Close</button>
   </div>
 
