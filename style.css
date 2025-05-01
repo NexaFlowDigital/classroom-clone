@@ -149,9 +149,6 @@ html, body {
   z-index: 2000;
   display: none;
 }
-#widgetSettingsPanel.hidden {
-  display: none;
-}
 
 /* Widgets */
 .widget {
@@ -165,20 +162,20 @@ html, body {
   cursor: move;
   z-index: 500;
 }
-/* Hide original headers */
+
+/* Restore and style the widget header */
 .widget .header {
-  display: none !important;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 8px;
+  background: var(--widget-header-bg);
+  color: var(--widget-header-fg);
+  cursor: grab;
 }
-/* Settings icon on hover/selection */
-.widget:hover::before,
-.widget.selected::before {
-  content: "⚙️";
-  position: absolute;
-  top: 4px;
-  right: 4px;
-  font-size: 1.2rem;
+.widget .header span {
   cursor: pointer;
-  z-index: 600;
+  margin-left: 8px;
 }
 
 /* Widget content area */
@@ -186,7 +183,7 @@ html, body {
   padding: 8px;
   display: flex;
   flex-direction: column;
-  height: 100%;
+  height: calc(100% - 34px); /* account for header height */
 }
 .widget .content > * {
   flex: 1;
