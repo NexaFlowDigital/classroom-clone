@@ -3,7 +3,7 @@ let screens = { 'Screen 1': [] };
 let activeScreen = 'Screen 1';
 let topZ = 1000, bottomZ = 0;
 
-// ─── Drag/Resize Utility ───
+// ─── Drag & Resize Utility ───
 function makeDraggable(el) {
   let dx, dy, dragging = false;
   el.addEventListener('mousedown', e => {
@@ -26,7 +26,7 @@ function makeDraggable(el) {
   });
 }
 
-// ─── Widget Shell Factory ───
+// ─── Create Widget Shell ───
 function createWidget(type, cfg) {
   const w = document.createElement('div');
   w.className = 'widget';
@@ -50,46 +50,40 @@ function createWidget(type, cfg) {
     w.dataset.z    = w.style.zIndex;
     w.dataset.locked = 'false';
   }
-  w.style.resize = w.dataset.locked==='true'?'none':'both';
+  w.style.resize = w.dataset.locked==='true' ? 'none' : 'both';
 
+  // content container
   const cont = document.createElement('div');
   cont.className = 'content';
   w.appendChild(cont);
 
+  // actual clickable gear icon
   const icon = document.createElement('div');
   icon.className = 'widget-settings-icon';
+  icon.innerText = '⚙️';
   w.appendChild(icon);
 
   document.getElementById('canvas').appendChild(w);
   makeDraggable(w);
 
-  w.addEventListener('click', e => {
-    const r = w.getBoundingClientRect();
-    if (
-      e.clientX >= r.right - 24 &&
-      e.clientX <= r.right &&
-      e.clientY >= r.top &&
-      e.clientY <= r.top + 24
-    ) {
-      e.stopPropagation();
-      openWidgetSettings(w);
-    }
+  // open settings on gear click
+  icon.addEventListener('click', e => {
+    e.stopPropagation();
+    openWidgetSettings(w);
   });
 
   return { w, cont };
 }
 
-// ─── Remove Background Option ───
+// ─── Remove old background option ───
 document.addEventListener('DOMContentLoaded', () => {
   const sel = document.getElementById('widgetSelect');
-  const bg = sel.querySelector('option[value="setBackground"]');
-  if (bg) bg.remove();
+  sel.querySelector('option[value="setBackground"]')?.remove();
 });
 
-// ─── Global Settings: Canvas Background ───
-// (in index.html we added that color input already)
+// ─── Global Canvas bg is handled via index.html color input ───
 
-// ─── Screen Tabs Management ───
+// ─── Screen Tabs ───
 function initScreens() {
   renderScreenTabs();
   loadScreen(activeScreen);
@@ -167,10 +161,10 @@ function initAnnotation() {
   if (annoCanvas) return;
   const cv = document.getElementById('canvas');
   annoCanvas = document.createElement('canvas');
-  annoCanvas.width = cv.clientWidth;
-  annoCanvas.height= cv.clientHeight;
+  annoCanvas.width  = cv.clientWidth;
+  annoCanvas.height = cv.clientHeight;
   Object.assign(annoCanvas.style, {
-    position:'absolute', top:0, left:0, zIndex:400, pointerEvents:'none'
+    position: 'absolute', top:0, left:0, zIndex:400, pointerEvents:'none'
   });
   cv.appendChild(annoCanvas);
   annoCtx = annoCanvas.getContext('2d');
@@ -188,7 +182,7 @@ function initAnnotation() {
   document.onmouseup = () => {
     annoCanvas.onmousemove = null;
     annoHistory.push(annoCanvas.toDataURL());
-    saveCurrentScreen(); // TODO: push to Firebase
+    saveCurrentScreen(); // TODO: Firebase
   };
 }
 
@@ -215,29 +209,19 @@ function openWidgetSettings(widget) {
   widgetSettingsPanel.style.left = (r.left   + window.scrollX)        + 'px';
 
   gen.querySelector('#bringFront').onclick = () => {
-    widget.style.zIndex = ++topZ;
-    saveCurrentScreen();
-    widgetSettingsPanel.classList.add('hidden');
+    widget.style.zIndex = ++topZ; saveCurrentScreen(); widgetSettingsPanel.classList.add('hidden');
   };
   gen.querySelector('#sendBack').onclick = () => {
-    widget.style.zIndex = --bottomZ;
-    saveCurrentScreen();
-    widgetSettingsPanel.classList.add('hidden');
+    widget.style.zIndex = --bottomZ; saveCurrentScreen(); widgetSettingsPanel.classList.add('hidden');
   };
   gen.querySelector('#moveForward').onclick = () => {
-    widget.style.zIndex = (+widget.style.zIndex + 1);
-    saveCurrentScreen();
-    widgetSettingsPanel.classList.add('hidden');
+    widget.style.zIndex = (+widget.style.zIndex + 1); saveCurrentScreen(); widgetSettingsPanel.classList.add('hidden');
   };
   gen.querySelector('#moveBackward').onclick = () => {
-    widget.style.zIndex = (+widget.style.zIndex - 1);
-    saveCurrentScreen();
-    widgetSettingsPanel.classList.add('hidden');
+    widget.style.zIndex = (+widget.style.zIndex - 1); saveCurrentScreen(); widgetSettingsPanel.classList.add('hidden');
   };
   gen.querySelector('#delWidget').onclick = () => {
-    widget.remove();
-    saveCurrentScreen();
-    widgetSettingsPanel.classList.add('hidden');
+    widget.remove(); saveCurrentScreen(); widgetSettingsPanel.classList.add('hidden');
   };
   gen.querySelector('#lockWidget').onchange = e => {
     widget.dataset.locked = e.target.checked;
@@ -251,10 +235,7 @@ function openWidgetSettings(widget) {
   }
 }
 document.addEventListener('click', e => {
-  if (
-    !e.target.closest('#widgetSettingsPanel') &&
-    !e.target.closest('.widget')
-  ) {
+  if (!e.target.closest('#widgetSettingsPanel') && !e.target.closest('.widget')) {
     widgetSettingsPanel.classList.add('hidden');
   }
 });
@@ -263,7 +244,7 @@ document.addEventListener('click', e => {
 document.addEventListener('DOMContentLoaded', () => {
   initScreens();
 
-  // toolbar collapse
+  // collapse toolbar
   const collapseBtn = document.getElementById('collapseBtn');
   const tools       = document.getElementById('tools');
   collapseBtn.onclick = () => {
@@ -350,6 +331,10 @@ function formatTime(sec) {
   const m = Math.floor(sec/60), s = sec%60;
   return `${m}:${s.toString().padStart(2,'0')}`;
 }
+
+// ─── Widget Registry ───
+// (your existing widgetRegistry block goes here unchanged)  
+// make sure it still includes the .settings hooks and delete logic
 
 // ─── Widget Registry ───
 const widgetRegistry = {
