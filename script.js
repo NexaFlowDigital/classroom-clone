@@ -1,11 +1,9 @@
-// script.js
-
-// ─── In‐Memory Screens ───
+// ─── In-Memory Screens ───
 let screens = { 'Screen 1': [] };
 let activeScreen = 'Screen 1';
 let topZ = 1000, bottomZ = 0;
 
-// ─── Utility: Draggable & Resizable ───
+// ─── Drag/Resize Utility ───
 function makeDraggable(el) {
   let dx, dy, dragging = false;
   el.addEventListener('mousedown', e => {
@@ -18,8 +16,8 @@ function makeDraggable(el) {
   });
   document.addEventListener('mousemove', e => {
     if (!dragging) return;
-    el.style.left = `${e.clientX - dx}px`;
-    el.style.top  = `${e.clientY - dy}px`;
+    el.style.left = (e.clientX - dx) + 'px';
+    el.style.top  = (e.clientY - dy) + 'px';
   });
   document.addEventListener('mouseup', () => {
     if (dragging) saveCurrentScreen();
@@ -28,16 +26,16 @@ function makeDraggable(el) {
   });
 }
 
-// ─── Create Widget Shell ───
+// ─── Widget Shell Factory ───
 function createWidget(type, cfg) {
   const w = document.createElement('div');
   w.className = 'widget';
   w.dataset.type = type;
 
-  // Restore or default position & size
+  // restore or defaults
   if (cfg) {
     ['left','top','width','height','z','locked'].forEach(p => {
-      if (cfg[p] !== undefined) {
+      if (cfg[p] != null) {
         if (p === 'locked') w.dataset.locked = cfg[p];
         else w.style[p] = cfg[p];
       }
@@ -54,12 +52,10 @@ function createWidget(type, cfg) {
   }
   w.style.resize = w.dataset.locked==='true'?'none':'both';
 
-  // Content area
   const cont = document.createElement('div');
   cont.className = 'content';
   w.appendChild(cont);
 
-  // Settings icon
   const icon = document.createElement('div');
   icon.className = 'widget-settings-icon';
   w.appendChild(icon);
@@ -67,16 +63,14 @@ function createWidget(type, cfg) {
   document.getElementById('canvas').appendChild(w);
   makeDraggable(w);
 
-  // Open settings on icon click
   w.addEventListener('click', e => {
     const r = w.getBoundingClientRect();
-    const isIcon = (
-      e.clientX >= r.right-24 &&
+    if (
+      e.clientX >= r.right - 24 &&
       e.clientX <= r.right &&
       e.clientY >= r.top &&
-      e.clientY <= r.top+24
-    );
-    if (isIcon) {
+      e.clientY <= r.top + 24
+    ) {
       e.stopPropagation();
       openWidgetSettings(w);
     }
@@ -88,29 +82,20 @@ function createWidget(type, cfg) {
 // ─── Remove Background Option ───
 document.addEventListener('DOMContentLoaded', () => {
   const sel = document.getElementById('widgetSelect');
-  const bgOpt = sel.querySelector('option[value="setBackground"]');
-  if (bgOpt) bgOpt.remove();
+  const bg = sel.querySelector('option[value="setBackground"]');
+  if (bg) bg.remove();
 });
 
 // ─── Global Settings: Canvas Background ───
-document.addEventListener('DOMContentLoaded', () => {
-  const sp = document.getElementById('settingsPanel');
-  const lbl = document.createElement('label');
-  lbl.innerHTML = 'Canvas bg: <input type="color" id="canvasBg" value="#ffffff"/>';
-  sp.insertBefore(lbl, sp.querySelector('#closeSettings'));
-  document.getElementById('canvasBg').oninput = e => {
-    document.getElementById('canvas').style.background = e.target.value;
-    // TODO: Save to Firebase
-  };
-});
+// (in index.html we added that color input already)
 
-// ─── Screen/Tab Management ───
+// ─── Screen Tabs Management ───
 function initScreens() {
   renderScreenTabs();
   loadScreen(activeScreen);
 }
 function persistScreens() {
-  // TODO: Save `screens` & `activeScreen` to Firebase
+  // TODO: push to Firebase
 }
 function renderScreenTabs() {
   const tabs = document.getElementById('screenTabs');
@@ -123,7 +108,8 @@ function renderScreenTabs() {
     tabs.appendChild(btn);
   });
   const add = document.createElement('button');
-  add.id = 'addScreen'; add.innerText = '+';
+  add.id = 'addScreen';
+  add.innerText = '+';
   add.onclick = () => {
     const nm = prompt('New screen name:');
     if (nm && !screens[nm]) {
@@ -140,13 +126,13 @@ function saveCurrentScreen() {
   document.querySelectorAll('.widget').forEach(w => {
     const s = getComputedStyle(w);
     arr.push({
-      type:   w.dataset.type,
-      left:   s.left,
-      top:    s.top,
-      width:  s.width,
+      type: w.dataset.type,
+      left: s.left,
+      top: s.top,
+      width: s.width,
       height: s.height,
-      z:      s.zIndex,
-      html:   w.querySelector('.content').innerHTML,
+      z: s.zIndex,
+      html: w.querySelector('.content').innerHTML,
       locked: w.dataset.locked
     });
   });
@@ -175,20 +161,21 @@ function switchScreen(name) {
   loadScreen(name);
 }
 
-// ─── Annotation ───
+// ─── Annotation Layer ───
 let annotating=false, annoCanvas, annoCtx, annoHistory=[];
 function initAnnotation() {
   if (annoCanvas) return;
   const cv = document.getElementById('canvas');
   annoCanvas = document.createElement('canvas');
   annoCanvas.width = cv.clientWidth;
-  annoCanvas.height = cv.clientHeight;
-  Object.assign(annoCanvas.style,{
-    position:'absolute',top:0,left:0,zIndex:400,pointerEvents:'none'
+  annoCanvas.height= cv.clientHeight;
+  Object.assign(annoCanvas.style, {
+    position:'absolute', top:0, left:0, zIndex:400, pointerEvents:'none'
   });
   cv.appendChild(annoCanvas);
   annoCtx = annoCanvas.getContext('2d');
   annoCtx.lineCap = 'round';
+
   annoCanvas.onmousedown = e => {
     if (!annotating) return;
     annoCtx.beginPath();
@@ -201,7 +188,7 @@ function initAnnotation() {
   document.onmouseup = () => {
     annoCanvas.onmousemove = null;
     annoHistory.push(annoCanvas.toDataURL());
-    saveCurrentScreen(); // TODO: Save to Firebase
+    saveCurrentScreen(); // TODO: push to Firebase
   };
 }
 
@@ -211,59 +198,63 @@ function openWidgetSettings(widget) {
   widgetSettingsPanel.innerHTML = '';
   widgetSettingsPanel.classList.remove('hidden');
 
-  // Common controls
   const gen = document.createElement('div');
   gen.innerHTML = `
     <button id="bringFront">Bring to Front</button>
     <button id="sendBack">Send to Back</button>
-    <button id="moveForward">Move Forward</button>
-    <button id="moveBackward">Move Backward</button>
+    <button id="moveForward">Forward</button>
+    <button id="moveBackward">Backward</button>
     <button id="delWidget">🗑️ Delete</button>
     <label><input type="checkbox" id="lockWidget" ${widget.dataset.locked==='true'?'checked':''}/> Lock</label>
     <hr/>
   `;
   widgetSettingsPanel.appendChild(gen);
 
-  // Position panel
   const r = widget.getBoundingClientRect();
-  widgetSettingsPanel.style.top  = `${r.bottom + window.scrollY + 4}px`;
-  widgetSettingsPanel.style.left = `${r.left + window.scrollX}px`;
+  widgetSettingsPanel.style.top  = (r.bottom + window.scrollY + 4) + 'px';
+  widgetSettingsPanel.style.left = (r.left   + window.scrollX)        + 'px';
 
-  // Handlers
   gen.querySelector('#bringFront').onclick = () => {
-    widget.style.zIndex = ++topZ; saveCurrentScreen(); widgetSettingsPanel.classList.add('hidden');
+    widget.style.zIndex = ++topZ;
+    saveCurrentScreen();
+    widgetSettingsPanel.classList.add('hidden');
   };
   gen.querySelector('#sendBack').onclick = () => {
-    widget.style.zIndex = --bottomZ; saveCurrentScreen(); widgetSettingsPanel.classList.add('hidden');
+    widget.style.zIndex = --bottomZ;
+    saveCurrentScreen();
+    widgetSettingsPanel.classList.add('hidden');
   };
   gen.querySelector('#moveForward').onclick = () => {
-    widget.style.zIndex = parseInt(widget.style.zIndex||0)+1;
-    saveCurrentScreen(); widgetSettingsPanel.classList.add('hidden');
+    widget.style.zIndex = (+widget.style.zIndex + 1);
+    saveCurrentScreen();
+    widgetSettingsPanel.classList.add('hidden');
   };
   gen.querySelector('#moveBackward').onclick = () => {
-    widget.style.zIndex = parseInt(widget.style.zIndex||0)-1;
-    saveCurrentScreen(); widgetSettingsPanel.classList.add('hidden');
+    widget.style.zIndex = (+widget.style.zIndex - 1);
+    saveCurrentScreen();
+    widgetSettingsPanel.classList.add('hidden');
   };
   gen.querySelector('#delWidget').onclick = () => {
-    widget.remove(); saveCurrentScreen(); widgetSettingsPanel.classList.add('hidden');
+    widget.remove();
+    saveCurrentScreen();
+    widgetSettingsPanel.classList.add('hidden');
   };
   gen.querySelector('#lockWidget').onchange = e => {
     widget.dataset.locked = e.target.checked;
-    widget.style.resize = e.target.checked ? 'none' : 'both';
+    widget.style.resize = e.target.checked?'none':'both';
     saveCurrentScreen();
   };
 
-  // Widget‐specific settings
   const type = widget.dataset.type;
   if (widgetRegistry[type].settings) {
     widgetRegistry[type].settings(widget, widgetSettingsPanel);
   }
 }
-
-// Close panel when clicking away
 document.addEventListener('click', e => {
-  if (!e.target.closest('#widgetSettingsPanel') &&
-      !e.target.closest('.widget')) {
+  if (
+    !e.target.closest('#widgetSettingsPanel') &&
+    !e.target.closest('.widget')
+  ) {
     widgetSettingsPanel.classList.add('hidden');
   }
 });
@@ -272,16 +263,16 @@ document.addEventListener('click', e => {
 document.addEventListener('DOMContentLoaded', () => {
   initScreens();
 
-  // Toolbar collapse
-  const collapseBtn = document.getElementById('collapseBtn'),
-        tools       = document.getElementById('tools');
+  // toolbar collapse
+  const collapseBtn = document.getElementById('collapseBtn');
+  const tools       = document.getElementById('tools');
   collapseBtn.onclick = () => {
     const hidden = tools.style.display==='none';
     tools.style.display = hidden?'flex':'none';
     collapseBtn.innerText = hidden?'▲':'▼';
   };
 
-  // Global settings panel
+  // global settings
   const sp = document.getElementById('settingsPanel');
   document.getElementById('settingsBtn').onclick = () => sp.classList.remove('hidden');
   document.getElementById('closeSettings').onclick = () => sp.classList.add('hidden');
@@ -289,8 +280,10 @@ document.addEventListener('DOMContentLoaded', () => {
     document.documentElement.style.setProperty('--toolbar-bg', e.target.value);
   document.getElementById('themeWidget').oninput = e =>
     document.documentElement.style.setProperty('--widget-header-bg', e.target.value);
+  document.getElementById('canvasBg').oninput = e =>
+    document.getElementById('canvas').style.background = e.target.value;
 
-  // Annotation toggle
+  // annotation toggle
   const annoBtn = document.getElementById('annotateTool');
   annoBtn.onclick = () => {
     annotating = !annotating;
@@ -317,13 +310,13 @@ document.addEventListener('DOMContentLoaded', () => {
     saveCurrentScreen();
   };
 
-  // Save screen
+  // save screen
   document.getElementById('saveBtn').onclick = () => {
     saveCurrentScreen();
     alert('Screen saved in memory. // TODO: push to Firebase');
   };
 
-  // Select tool
+  // select tool
   let selecting = false;
   const selectBtn = document.getElementById('selectTool');
   function onSelect(e) {
@@ -341,10 +334,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!selecting) document.removeEventListener('click', onSelect, true);
   };
 
-  // Add widget + debug
-  const picker = document.getElementById('widgetSelect');
-  picker.addEventListener('change', e => console.log('Adding widget:', e.target.value));
-  picker.onchange = e => {
+  // add widget
+  document.getElementById('widgetSelect').onchange = e => {
     const type = e.target.value;
     if (type && widgetRegistry[type]) {
       widgetRegistry[type]();
@@ -362,7 +353,6 @@ function formatTime(sec) {
 
 // ─── Widget Registry ───
 const widgetRegistry = {
-
   // ─ Text ─
   text: cfg => {
     const { w, cont } = createWidget('text', cfg);
@@ -374,7 +364,7 @@ const widgetRegistry = {
         <label>Font size:
           <select id="txtSize">
             <option value="12px">12</option>
-            <option value="14px" selected>14</option>
+            <option value="14px">14</option>
             <option value="18px">18</option>
             <option value="24px">24</option>
           </select>
@@ -419,7 +409,7 @@ const widgetRegistry = {
         <label>Font size:
           <select id="tmSize">
             <option value="14px">14</option>
-            <option value="18px" selected>18</option>
+            <option value="18px">18</option>
             <option value="24px">24</option>
           </select>
         </label>
@@ -437,8 +427,6 @@ const widgetRegistry = {
         w.dataset.size = e.target.value; saveCurrentScreen();
       };
     };
-
-    // Controls
     const bar1 = document.createElement('div'); bar1.className='widget-toolbar';
     bar1.innerHTML = `
       <button id="minusMin">– Min</button>
@@ -447,7 +435,6 @@ const widgetRegistry = {
       <button id="plusSec">+ Sec</button>
     `;
     cont.append(bar1);
-
     const disp = document.createElement('div');
     disp.className='timer-display';
     disp.style.flex='1';
@@ -459,7 +446,6 @@ const widgetRegistry = {
     disp.style.color    = cfg?.txtColor||'#000';
     disp.style.background = cfg?.bgColor||'#fff';
     cont.append(disp);
-
     const bar2 = document.createElement('div'); bar2.className='widget-toolbar';
     bar2.innerHTML = `
       <button id="startBtn">▶️</button>
@@ -467,22 +453,20 @@ const widgetRegistry = {
       <button id="resetBtn">↺</button>
     `;
     cont.append(bar2);
-
-    // Logic
-    let total = +(w.dataset.total||cfg?.total||60);
-    let id = null;
+    let total = +(w.dataset.total||cfg?.total||60), id=null;
     function update() {
       disp.innerText = formatTime(total);
       w.dataset.total = total;
     }
-    bar1.querySelector('#plusMin').onclick    = ()=>{ total+=60; update(); saveCurrentScreen(); };
-    bar1.querySelector('#minusMin').onclick   = ()=>{ total=Math.max(0,total-60); update(); saveCurrentScreen(); };
-    bar1.querySelector('#plusSec').onclick    = ()=>{ total++; update(); saveCurrentScreen(); };
-    bar1.querySelector('#minusSec').onclick   = ()=>{ total=Math.max(0,total-1); update(); saveCurrentScreen(); };
-    bar2.querySelector('#startBtn').onclick   = ()=>{ if(id) return; id=setInterval(()=>{ if(total>0){total--;update();saveCurrentScreen()}else clearInterval(id); },1000); };
-    bar2.querySelector('#pauseBtn').onclick   = ()=>{ clearInterval(id); id=null; };
-    bar2.querySelector('#resetBtn').onclick   = ()=>{ clearInterval(id); id=null; total=+(cfg?.total||60); update(); saveCurrentScreen(); };
-
+    bar1.querySelector('#plusMin').onclick  = ()=>{ total+=60; update(); saveCurrentScreen(); };
+    bar1.querySelector('#minusMin').onclick = ()=>{ total=Math.max(0,total-60); update(); saveCurrentScreen(); };
+    bar1.querySelector('#plusSec').onclick  = ()=>{ total++; update(); saveCurrentScreen(); };
+    bar1.querySelector('#minusSec').onclick = ()=>{ total=Math.max(0,total-1); update(); saveCurrentScreen(); };
+    bar2.querySelector('#startBtn').onclick = ()=>{ if(id) return; id=setInterval(()=>{
+      if(total>0){ total--; update(); saveCurrentScreen(); } else clearInterval(id);
+    },1000); };
+    bar2.querySelector('#pauseBtn').onclick = ()=>{ clearInterval(id); id=null; };
+    bar2.querySelector('#resetBtn').onclick = ()=>{ clearInterval(id); id=null; total=+(cfg?.total||60); update(); saveCurrentScreen(); };
     update();
     return { w, cont };
   },
@@ -504,12 +488,10 @@ const widgetRegistry = {
         w.dataset.color = e.target.value; saveCurrentScreen();
       };
     };
-
     const disp = document.createElement('div');
     disp.style.flex='1'; disp.style.fontSize='24px'; disp.style.textAlign='center';
     disp.style.color = cfg?.color||'#000';
     cont.append(disp);
-
     function update(){
       const now = new Date();
       const opts = w.dataset.format24==='true'?{}:{hour12:true};
@@ -531,14 +513,12 @@ const widgetRegistry = {
         w.dataset.sens = e.target.value; saveCurrentScreen();
       };
     };
-
     const meter = document.createElement('div');
     meter.style.flex='1'; meter.style.background='#eee'; meter.style.height='20px';
     cont.append(meter);
-
     let sens=+(w.dataset.sens||0.2);
     navigator.mediaDevices.getUserMedia({audio:true})
-      .then(stream => {
+      .then(stream=>{
         const ac=new AudioContext(), src=ac.createMediaStreamSource(stream),
               an=ac.createAnalyser(), data=new Uint8Array(an.fftSize);
         src.connect(an);
@@ -553,7 +533,6 @@ const widgetRegistry = {
         loop();
       })
       .catch(err=>cont.innerText='❌ '+err.message);
-
     return { w, cont };
   },
 
@@ -573,14 +552,12 @@ const widgetRegistry = {
         w.dataset.sides = e.target.value; saveCurrentScreen();
       };
     };
-
     const btn = document.createElement('button'); btn.innerText='Roll 🎲';
     const disp = document.createElement('div');
     disp.style.flex='1'; disp.style.fontSize='2rem'; disp.style.textAlign='center';
     cont.append(btn,disp);
-
     btn.onclick = () => {
-      const s = +(w.dataset.sides||cfg?.sides||6);
+      const s = +(w.dataset.sides||6);
       disp.innerText = Math.floor(Math.random()*s)+1;
     };
     return { w, cont };
@@ -599,11 +576,9 @@ const widgetRegistry = {
         w.dataset.count = e.target.value; renderTeams(); saveCurrentScreen();
       };
     };
-
     const box = document.createElement('div');
     box.style.flex='1'; box.style.overflow='auto';
     cont.append(box);
-
     function renderTeams(){
       box.innerHTML='';
       const cnt = +(w.dataset.count||2);
@@ -621,7 +596,6 @@ const widgetRegistry = {
         box.append(row);
       }
     }
-
     renderTeams();
     return { w, cont };
   },
@@ -639,19 +613,16 @@ const widgetRegistry = {
         w.dataset.total = e.target.value; resetTimer(); saveCurrentScreen();
       };
     };
-
     const canvas = document.createElement('canvas');
     canvas.width=canvas.height=120;
     cont.append(canvas);
     const ctx=canvas.getContext('2d');
-
-    let total=+(w.dataset.total||cfg?.total||60);
-    let rem=total, id;
+    let total=+(w.dataset.total||60), rem=total, id;
     function draw(){
       ctx.clearRect(0,0,120,120);
-      const pct=rem/total;
+      const pct = rem/total;
       ctx.beginPath();
-      ctx.arc(60,60,54,-Math.PI/2,-Math.PI/2+2*Math.PI*pct);
+      ctx.arc(60,60,54,-Math.PI/2, -Math.PI/2 + 2*Math.PI*pct);
       ctx.lineWidth=10; ctx.stroke();
       ctx.font='16px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
       ctx.fillText(formatTime(rem),60,60);
@@ -663,11 +634,10 @@ const widgetRegistry = {
       draw();
     }
     draw();
-    id=setInterval(()=>{
+    id = setInterval(()=>{
       if(rem>0){ rem--; draw(); saveCurrentScreen(); }
       else clearInterval(id);
     },1000);
-
     return { w, cont };
   },
 
@@ -684,12 +654,14 @@ const widgetRegistry = {
         </select>
       `;
       panel.querySelector('#clearDraw').onclick = () => {
-        ctx.clearRect(0,0,canvas.width,canvas.height); saveCurrentScreen(); };
+        ctx.clearRect(0,0,canvas.width,canvas.height); saveCurrentScreen();
+      };
       panel.querySelector('#pattern').onchange = e => {
-        w.dataset.pattern=e.target.value; /* TODO: apply pattern */ saveCurrentScreen();
+        w.dataset.pattern = e.target.value;
+        // TODO: apply pattern
+        saveCurrentScreen();
       };
     };
-
     const bar = document.createElement('div'); bar.className='widget-toolbar';
     bar.innerHTML=`
       <button id="drawPen">✏️</button>
@@ -698,14 +670,13 @@ const widgetRegistry = {
       <input type="range" id="drawSize" min="1" max="20" value="${w.dataset.size||4}"/>
     `;
     cont.append(bar);
-
     const canvas = document.createElement('canvas');
-    canvas.width=cont.clientWidth; canvas.height=cont.clientHeight-bar.offsetHeight;
+    canvas.width = cont.clientWidth;
+    canvas.height = cont.clientHeight - bar.offsetHeight;
     cont.append(canvas);
-    const ctx=canvas.getContext('2d');
+    const ctx = canvas.getContext('2d');
     ctx.lineCap='round';
     let drawing=false;
-
     function setMode(m){
       ctx.globalCompositeOperation = m==='erase'?'destination-out':'source-over';
     }
@@ -713,12 +684,10 @@ const widgetRegistry = {
     bar.querySelector('#drawEraser').onclick = ()=>setMode('erase');
     bar.querySelector('#drawColor').oninput   = e=>{ctx.strokeStyle=e.target.value;w.dataset.color=e.target.value;saveCurrentScreen()};
     bar.querySelector('#drawSize').oninput    = e=>{ctx.lineWidth=e.target.value;w.dataset.size=e.target.value;saveCurrentScreen()};
-
-    canvas.onmousedown=e=>{drawing=true;ctx.beginPath();ctx.moveTo(e.offsetX,e.offsetY)};
-    canvas.onmousemove=e=>{if(!drawing)return;ctx.lineTo(e.offsetX,e.offsetY);ctx.stroke()};
-    document.onmouseup=()=>{if(drawing){drawing=false;saveCurrentScreen()}};
-
-    setMode('pen');ctx.strokeStyle=w.dataset.color||'#000';ctx.lineWidth=w.dataset.size||4;
+    canvas.onmousedown = e=>{drawing=true;ctx.beginPath();ctx.moveTo(e.offsetX,e.offsetY)};
+    canvas.onmousemove = e=>{ if(!drawing) return; ctx.lineTo(e.offsetX,e.offsetY); ctx.stroke() };
+    document.onmouseup = ()=>{ if(drawing){drawing=false;saveCurrentScreen()} };
+    setMode('pen'); ctx.strokeStyle=w.dataset.color||'#000'; ctx.lineWidth=w.dataset.size||4;
     return { w, cont };
   },
 
@@ -738,35 +707,42 @@ const widgetRegistry = {
       panel.querySelector('#startDay').onchange = e=>{w.dataset.startDay=e.target.value;render();saveCurrentScreen()};
       panel.querySelector('#showWeekends').onchange = e=>{w.dataset.showWeekends=e.target.checked;render();saveCurrentScreen()};
     };
-
     const bar = document.createElement('div'); bar.className='widget-toolbar';
     bar.innerHTML = `<button id="prev">‹</button><span id="title"></span><button id="next">›</button>`;
     cont.append(bar);
     const grid = document.createElement('div');
-    grid.style.display='grid'; grid.style.gridTemplateColumns='repeat(7,1fr)'; grid.style.flex='1'; grid.style.gap='2px';
+    grid.style.display='grid';
+    grid.style.gridTemplateColumns='repeat(7,1fr)';
+    grid.style.flex='1';
+    grid.style.gap='2px';
     cont.append(grid);
-
-    let date = cfg?.date?new Date(cfg.date):new Date();
+    let date = cfg?.date ? new Date(cfg.date) : new Date();
     w.dataset.date = date.toISOString();
-
     function render(){
       grid.innerHTML = '';
       const showWd = w.dataset.showWeekends!=='false';
-      document.getElementById('title').innerText = date.toLocaleString('default',{month:'long',year:'numeric'});
+      document.getElementById('title').innerText =
+        date.toLocaleString('default',{month:'long',year:'numeric'});
       ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].forEach((d,i)=>{
-        if(!showWd && (i===0||i===6)) return;
-        const hd=document.createElement('div');hd.style.fontWeight='bold';hd.innerText=d;grid.append(hd);
+        if(!showWd&&(i===0||i===6)) return;
+        const hd=document.createElement('div');
+        hd.style.fontWeight='bold';
+        hd.innerText=d;
+        grid.append(hd);
       });
       const fd=new Date(date.getFullYear(),date.getMonth(),1).getDay();
-      for(let i=0;i<fd;i++) if(showWd||(i>0&&i<6))grid.append(document.createElement('div'));
+      for(let i=0;i<fd;i++) {
+        if(showWd||(i>0&&i<6)) grid.append(document.createElement('div'));
+      }
       const days=new Date(date.getFullYear(),date.getMonth()+1,0).getDate();
       for(let d=1;d<=days;d++){
-        const cell=document.createElement('div');cell.innerText=d;cell.style.cursor='pointer';
+        const cell=document.createElement('div');
+        cell.innerText=d;
+        cell.style.cursor='pointer';
         cell.onclick=()=>{w.dataset.selected=d;saveCurrentScreen()};
         grid.append(cell);
       }
     }
-
     bar.querySelector('#prev').onclick = ()=>{date.setMonth(date.getMonth()-1);render()};
     bar.querySelector('#next').onclick = ()=>{date.setMonth(date.getMonth()+1);render()};
     render();
@@ -780,7 +756,7 @@ const widgetRegistry = {
     navigator.mediaDevices.getDisplayMedia({video:true})
       .then(s=>{
         const v=document.createElement('video');
-        v.srcObject=s; v.autoplay=true; Object.assign(v.style,{flex:'1',objectFit:'contain'});
+        v.srcObject=s; v.autoplay=true; v.style.flex='1'; v.style.objectFit='contain';
         cont.append(v);
       })
       .catch(err=>cont.innerText='❌ '+err.message);
@@ -791,23 +767,23 @@ const widgetRegistry = {
   poll: cfg => {
     const { w, cont } = createWidget('poll', cfg);
     widgetRegistry.poll.settings = (w,panel) => {
-      panel.innerHTML += `
-        <button id="resetPoll">Reset</button>
-      `;
+      panel.innerHTML += `<button id="resetPoll">Reset</button>`;
       panel.querySelector('#resetPoll').onclick = ()=>{counts.fill(0); update(); saveCurrentScreen()};
     };
-    const q = cfg?.q||prompt('Question:')||'...?';
-    const opts = cfg?.opts?cfg.opts.split(','):prompt('Options, comma:','Yes,No').split(',');
-    let counts = cfg?.counts?cfg.counts.split(',').map(Number):opts.map(_=>0);
-    w.dataset.q=q; w.dataset.opts=opts.join(','); w.dataset.counts=counts.join(',');
+    const q    = cfg?.q    || prompt('Question:') || 'Question?';
+    const opts = cfg?.opts ? cfg.opts.split(',') : (prompt('Options, comma:','Yes,No')||'Yes,No').split(',');
+    let counts = cfg?.counts ? cfg.counts.split(',').map(Number) : opts.map(_=>0);
+    w.dataset.q = q;
+    w.dataset.opts = opts.join(',');
+    w.dataset.counts = counts.join(',');
     cont.innerHTML = `<strong>${q}</strong><br>`;
-    function update(){
+    function update() {
       cont.innerHTML = `<strong>${q}</strong><br>`;
       opts.forEach((o,i)=>{
-        const btn=document.createElement('button');
-        btn.innerText=`${o.trim()} (${counts[i]})`;
-        btn.onclick=()=>{counts[i]++;w.dataset.counts=counts.join(',');update();saveCurrentScreen()};
-        cont.append(btn,document.createElement('br'));
+        const btn = document.createElement('button');
+        btn.innerText = `${o.trim()} (${counts[i]})`;
+        btn.onclick = ()=>{counts[i]++; w.dataset.counts=counts.join(','); update(); saveCurrentScreen()};
+        cont.append(btn, document.createElement('br'));
       });
     }
     update();
@@ -819,22 +795,23 @@ const widgetRegistry = {
     const { w, cont } = createWidget('timetable', cfg);
     widgetRegistry.timetable.settings = (w,panel) => {
       panel.innerHTML += `<button id="toggleMode">Toggle Mode</button>`;
-      // TODO: implement mode toggle
+      // TODO: implement checklist vs timed
     };
     const list = document.createElement('div');
     list.style.flex='1'; list.style.overflow='auto';
-    list.innerHTML = cfg?.html||'<div>8:00 – <span contentEditable>Activity</span></div>';
+    list.innerHTML = cfg?.html || '<div>08:00 – <span contentEditable>Activity</span></div>';
     cont.append(list);
     const bar = document.createElement('div'); bar.className='widget-toolbar';
     bar.innerHTML = `<button id="addAct">+ Activity</button>`;
-    cont.insertBefore(bar,list);
+    cont.insertBefore(bar, list);
     bar.querySelector('#addAct').onclick = ()=>{
-      const t=prompt('Time:'),a=prompt('Activity:');
-      if(t&&a){
-        const row=document.createElement('div');
-        row.innerHTML=`${t} – <span contentEditable>${a}</span>`;
+      const t = prompt('Time:'), a = prompt('Activity:');
+      if (t && a) {
+        const row = document.createElement('div');
+        row.innerHTML = `${t} – <span contentEditable>${a}</span>`;
         list.append(row);
-        w.dataset.html=list.innerHTML; saveCurrentScreen();
+        w.dataset.html = list.innerHTML;
+        saveCurrentScreen();
       }
     };
     return { w, cont };
@@ -843,30 +820,31 @@ const widgetRegistry = {
   // ─ Randomizer ─
   randomizer: cfg => {
     const { w, cont } = createWidget('randomizer', cfg);
-    widgetRegistry.randomizer.settings = (w,panel) => {};
-    const items = cfg?.items?cfg.items.split(','):prompt('Items, comma:','A,B,C').split(',');
-    w.dataset.items=items.join(',');
-    const btn=document.createElement('button'); btn.innerText='Shuffle';
-    const disp=document.createElement('div'); disp.style.flex='1'; disp.style.textAlign='center';
-    cont.append(btn,disp);
-    btn.onclick=()=>disp.innerText=items[Math.floor(Math.random()*items.length)];
+    widgetRegistry.randomizer.settings = () => {};
+    const items = cfg?.items ? cfg.items.split(',') : (prompt('Items, comma:','A,B,C')||'A,B,C').split(',');
+    w.dataset.items = items.join(',');
+    const btn = document.createElement('button'); btn.innerText='Shuffle';
+    const disp= document.createElement('div'); disp.style.flex='1'; disp.style.textAlign='center';
+    cont.append(btn, disp);
+    btn.onclick = ()=> disp.innerText = items[Math.floor(Math.random()*items.length)];
     return { w, cont };
   },
 
   // ─ Group Maker ─
   groupMaker: cfg => {
     const { w, cont } = createWidget('groupMaker', cfg);
-    widgetRegistry.groupMaker.settings = (w,panel) => {};
-    const names = cfg?.names?cfg.names.split(','):prompt('Names, comma:','A,B,C').split(',');
-    const size  = +cfg?.size||parseInt(prompt('Group size:'),10)||2;
-    w.dataset.names=names.join(','); w.dataset.size=size;
-    const btn=document.createElement('button'); btn.innerText='Make groups';
-    const disp=document.createElement('div'); disp.style.flex='1';
-    cont.append(btn,disp);
-    btn.onclick=()=>{
-      const arr=[...names],out=[];
+    widgetRegistry.groupMaker.settings = () => {};
+    const names = cfg?.names ? cfg.names.split(',') : (prompt('Names, comma:','A,B,C')||'A,B,C').split(',');
+    const size  = +cfg?.size || parseInt(prompt('Group size:'),10) || 2;
+    w.dataset.names = names.join(',');
+    w.dataset.size  = size;
+    const btn = document.createElement('button'); btn.innerText='Make groups';
+    const disp= document.createElement('div'); disp.style.flex='1';
+    cont.append(btn, disp);
+    btn.onclick = ()=>{
+      const arr = [...names], out=[];
       while(arr.length) out.push(arr.splice(0,size));
-      disp.innerHTML=out.map(g=>g.join(', ')).join('<br>');
+      disp.innerHTML = out.map(g=>g.join(', ')).join('<br>');
       saveCurrentScreen();
     };
     return { w, cont };
@@ -875,32 +853,40 @@ const widgetRegistry = {
   // ─ Work Symbols ─
   workSymbols: cfg => {
     const { w, cont } = createWidget('workSymbols', cfg);
-    widgetRegistry.workSymbols.settings = (w,panel) => {};
-    const syms=['✏️','☕️','✅','🔴']; let i=+w.dataset.idx||0;
-    const btn=document.createElement('button'); btn.innerText='Next';
-    const disp=document.createElement('div'); disp.style.flex='1'; disp.style.fontSize='2rem'; disp.style.textAlign='center';
-    cont.append(disp,btn);
-    btn.onclick=()=>{ i=(i+1)%syms.length; disp.innerText=syms[i]; w.dataset.idx=i; saveCurrentScreen(); };
-    disp.innerText=syms[i];
+    widgetRegistry.workSymbols.settings = () => {};
+    const syms = ['✏️','☕️','✅','🔴'];
+    let idx = +w.dataset.idx||0;
+    const btn = document.createElement('button'); btn.innerText='Next';
+    const disp= document.createElement('div');
+    disp.style.flex='1'; disp.style.fontSize='2rem'; disp.style.textAlign='center';
+    cont.append(disp, btn);
+    btn.onclick = ()=>{
+      idx = (idx+1)%syms.length;
+      disp.innerText = syms[idx];
+      w.dataset.idx = idx;
+      saveCurrentScreen();
+    };
+    disp.innerText = syms[idx];
     return { w, cont };
   },
 
   // ─ Stickers ─
   stickers: cfg => {
     const { w, cont } = createWidget('stickers', cfg);
-    widgetRegistry.stickers.settings = (w,panel) => {};
-    const gallery=document.createElement('div');
+    widgetRegistry.stickers.settings = () => {};
+    const gallery = document.createElement('div');
     gallery.style.flex='1'; gallery.style.display='flex'; gallery.style.flexWrap='wrap';
     cont.append(gallery);
-    const btn=document.createElement('button'); btn.innerText='+Sticker';
-    cont.insertBefore(btn,gallery);
-    btn.onclick=()=>{
-      const url=prompt('Sticker URL:');
-      if(url){
-        const img=document.createElement('img');
+    const btn = document.createElement('button'); btn.innerText='+Sticker';
+    cont.insertBefore(btn, gallery);
+    btn.onclick = ()=>{
+      const url = prompt('Sticker URL:');
+      if (url) {
+        const img = document.createElement('img');
         img.src=url; img.style.width='50px'; img.style.height='50px'; img.style.cursor='move';
         gallery.append(img);
-        w.dataset.html=gallery.innerHTML; saveCurrentScreen();
+        w.dataset.html = gallery.innerHTML;
+        saveCurrentScreen();
         makeDraggable(img);
       }
     };
@@ -910,100 +896,108 @@ const widgetRegistry = {
   // ─ Image ─
   image: cfg => {
     const { w, cont } = createWidget('image', cfg);
-    const url = cfg?.url||prompt('Image URL:');
-    if(url){
-      const img=document.createElement('img');
+    const url = cfg?.url || prompt('Image URL:');
+    if (url) {
+      const img = document.createElement('img');
       img.src=url; img.style.flex='1'; img.style.objectFit='contain';
       cont.append(img);
       w.dataset.url=url; saveCurrentScreen();
     }
-    widgetRegistry.image.settings = (w,panel) => {};
+    widgetRegistry.image.settings = () => {};
     return { w, cont };
   },
 
   // ─ Video ─
   video: cfg => {
     const { w, cont } = createWidget('video', cfg);
-    const url = cfg?.url||prompt('YouTube URL/ID:');
-    if(url){
-      const id = url.includes('v=')?url.split('v=')[1]:url;
-      const ifr=document.createElement('iframe');
+    const url = cfg?.url || prompt('YouTube URL/ID:');
+    if (url) {
+      const id = url.includes('v=') ? url.split('v=')[1] : url;
+      const ifr = document.createElement('iframe');
       ifr.src=`https://www.youtube.com/embed/${id}`;
       ifr.allowFullscreen=true; ifr.style.flex='1'; ifr.style.border='none';
       cont.append(ifr);
       w.dataset.url=url; saveCurrentScreen();
     }
-    widgetRegistry.video.settings = (w,panel) => {};
+    widgetRegistry.video.settings = () => {};
     return { w, cont };
   },
 
   // ─ Embed ─
   embed: cfg => {
     const { w, cont } = createWidget('embed', cfg);
-    const bar=document.createElement('div'); bar.className='widget-toolbar';
-    bar.innerHTML='<button id="editEmbed">Edit</button>';
+    const bar = document.createElement('div'); bar.className='widget-toolbar';
+    bar.innerHTML = '<button id="editEmbed">Edit</button>';
     cont.append(bar);
-    const ifr=document.createElement('iframe');
+    const ifr = document.createElement('iframe');
     ifr.style.flex='1'; ifr.style.border='none';
     cont.append(ifr);
-    function setURL(u){
-      if(u.includes('docs.google.com/presentation')){
-        u=u.replace('/edit','/embed').split('&')[0];
+    function setURL(u) {
+      if (u.includes('docs.google.com/presentation')) {
+        u = u.replace('/edit','/embed').split('&')[0];
       }
-      ifr.src=u; w.dataset.url=u; saveCurrentScreen();
+      ifr.src=u;
+      w.dataset.url=u;
+      saveCurrentScreen();
     }
-    if(cfg?.url) setURL(cfg.url);
+    if (cfg?.url) setURL(cfg.url);
     bar.querySelector('#editEmbed').onclick = ()=>{
-      const u=prompt('Embed URL:',w.dataset.url||'');
-      if(u) setURL(u);
+      const u = prompt('Embed URL:', w.dataset.url||'');
+      if (u) setURL(u);
     };
-    widgetRegistry.embed.settings=(w,panel)=>{};
+    widgetRegistry.embed.settings = () => {};
     return { w, cont };
   },
 
   // ─ Hyperlink ─
   hyperlink: cfg => {
     const { w, cont } = createWidget('hyperlink', cfg);
-    const links = cfg?.links?JSON.parse(cfg.links):[];
-    const bar=document.createElement('div'); bar.className='widget-toolbar';
-    bar.innerHTML='<button id="addLink">+ Link</button>';
+    const links = cfg?.links ? JSON.parse(cfg.links) : [];
+    const bar = document.createElement('div'); bar.className='widget-toolbar';
+    bar.innerHTML = '<button id="addLink">+ Link</button>';
     cont.append(bar);
-    const list=document.createElement('div'); list.style.flex='1'; cont.append(list);
-    function render(){
+    const list = document.createElement('div'); list.style.flex='1'; cont.append(list);
+    function render() {
       list.innerHTML='';
       links.forEach((ln,i)=>{
-        const row=document.createElement('div');
-        row.innerHTML=`<a href="${ln.url}" target="_blank">${ln.text}</a>
+        const row = document.createElement('div');
+        row.innerHTML = `<a href="${ln.url}" target="_blank">${ln.text}</a>
           <button data-del="${i}">✖</button>`;
-        row.querySelector('button').onclick=()=>{
-          links.splice(i,1); render();
-          w.dataset.links=JSON.stringify(links); saveCurrentScreen();
+        row.querySelector('button').onclick = ()=>{
+          links.splice(i,1);
+          render();
+          w.dataset.links=JSON.stringify(links);
+          saveCurrentScreen();
         };
         list.append(row);
       });
     }
-    bar.querySelector('#addLink').onclick=()=>{
-      const url=prompt('URL:'),txt=prompt('Text:')||url;
-      if(url){ links.push({url, text:txt}); render();
-        w.dataset.links=JSON.stringify(links); saveCurrentScreen();
+    bar.querySelector('#addLink').onclick = ()=>{
+      const url = prompt('URL:'), txt = prompt('Text:')||url;
+      if (url) {
+        links.push({url, text:txt});
+        render();
+        w.dataset.links=JSON.stringify(links);
+        saveCurrentScreen();
       }
     };
     render();
-    widgetRegistry.hyperlink.settings = (w,panel)=>{};
+    widgetRegistry.hyperlink.settings = () => {};
     return { w, cont };
   },
 
   // ─ QR Code ─
   qrCode: cfg => {
     const { w, cont } = createWidget('qrCode', cfg);
-    const data = cfg?.data||prompt('Text/URL:');
-    if(data){
-      const img=document.createElement('img');
-      img.src=`https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(data)}&size=150x150`;
-      img.style.flex='1'; cont.append(img);
+    const data = cfg?.data || prompt('Text/URL:');
+    if (data) {
+      const img = document.createElement('img');
+      img.src = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(data)}&size=150x150`;
+      img.style.flex='1';
+      cont.append(img);
       w.dataset.data=data; saveCurrentScreen();
     }
-    widgetRegistry.qrCode.settings=(w,panel)=>{};
+    widgetRegistry.qrCode.settings = () => {};
     return { w, cont };
   },
 
@@ -1021,54 +1015,152 @@ const widgetRegistry = {
       <button id="swLap">🏁</button>
     `;
     cont.append(bar);
-    const laps=document.createElement('div'); laps.style.flex='1'; laps.style.overflow='auto';
+    const laps=document.createElement('div');
+    laps.style.flex='1'; laps.style.overflow='auto';
     cont.append(laps);
-
     function update(){
-      const ms = running?(Date.now()-start+elapsed):elapsed;
+      const ms = running ? (Date.now()-start+elapsed) : elapsed;
       disp.innerText = formatTime(Math.floor(ms/1000));
     }
     bar.querySelector('#swStart').onclick=()=>{
-      if(!running){ running=true; start=Date.now(); interval=setInterval(update,500); }
+      if (!running) {
+        running=true;
+        start = Date.now();
+        interval = setInterval(update,500);
+      }
     };
     bar.querySelector('#swStop').onclick=()=>{
-      if(running){ running=false; clearInterval(interval); elapsed+=Date.now()-start; saveCurrentScreen(); }
+      if (running) {
+        running=false;
+        clearInterval(interval);
+        elapsed += Date.now()-start;
+        saveCurrentScreen();
+      }
     };
     bar.querySelector('#swLap').onclick=()=>{
-      const lap=document.createElement('div'); lap.innerText=disp.innerText;
+      const lap = document.createElement('div');
+      lap.innerText = disp.innerText;
       laps.append(lap);
     };
     update();
-    widgetRegistry.stopwatch.settings=(w,panel)=>{};
+    widgetRegistry.stopwatch.settings = () => {};
     return { w, cont };
   },
 
   // ─ Webcam ─
   webcam: cfg => {
     const { w, cont } = createWidget('webcam', cfg);
-    widgetRegistry.webcam.settings = (w,panel)=>{};
-    const bar=document.createElement('div'); bar.className='widget-toolbar';
-    bar.innerHTML=`<button id="flip">Flip</button><button id="rotate">Rotate</button>`;
+    widgetRegistry.webcam.settings = () => {};
+    const bar = document.createElement('div'); bar.className='widget-toolbar';
+    bar.innerHTML = `<button id="flip">Flip</button><button id="rotate">Rotate</button>`;
     cont.append(bar);
-    const video=document.createElement('video');
+    const video = document.createElement('video');
     video.autoplay=true; video.style.flex='1'; video.style.objectFit='cover';
     cont.append(video);
     navigator.mediaDevices.getUserMedia({video:true})
       .then(s=>{ video.srcObject=s; })
       .catch(err=>cont.innerText='❌ '+err.message);
-
     let flipped=false, rotated=false;
     function apply(){
-      let t='';
-      if(flipped) t+='scaleX(-1) ';
-      if(rotated) t+='rotate(90deg)';
+      let t = '';
+      if (flipped)  t += 'scaleX(-1) ';
+      if (rotated) t += 'rotate(90deg)';
       video.style.transform = t;
       w.dataset.flipped=flipped; w.dataset.rotated=rotated;
       saveCurrentScreen();
     }
-    bar.querySelector('#flip').onclick=()=>{ flipped=!flipped; apply(); };
-    bar.querySelector('#rotate').onclick=()=>{ rotated=!rotated; apply(); };
+    bar.querySelector('#flip').onclick   = ()=>{ flipped=!flipped;  apply(); };
+    bar.querySelector('#rotate').onclick = ()=>{ rotated=!rotated; apply(); };
+    return { w, cont };
+  },
+
+  // ─ Traffic Light ─
+  trafficLight: cfg => {
+    const { w, cont } = createWidget('trafficLight', cfg);
+    widgetRegistry.trafficLight.settings = (w,panel) => {
+      panel.innerHTML += `
+        <label>Design:
+          <select id="design">
+            <option value="classic">Classic</option>
+            <option value="modern">Modern</option>
+          </select>
+        </label>
+        <label>Label: <input id="desc" value="${w.dataset.desc||''}"/></label>
+      `;
+      panel.querySelector('#design').onchange = e => {
+        w.dataset.design = e.target.value; saveCurrentScreen();
+      };
+      panel.querySelector('#desc').oninput = e => {
+        w.dataset.desc = e.target.value; saveCurrentScreen();
+      };
+    };
+    const box = document.createElement('div');
+    box.className = 'traffic-box';
+    cont.append(box);
+
+    const states = ['red','yellow','green'];
+    let idx = states.indexOf(cfg?.state) >=0 ? states.indexOf(cfg.state) : 0;
+    function render() {
+      box.innerHTML = '';
+      states.forEach((c,i)=>{
+        const dot = document.createElement('div');
+        dot.className = 'traffic-light-circle';
+        dot.style.background = i===idx?c:'#444';
+        box.append(dot);
+      });
+      if (w.dataset.desc) {
+        const lbl=document.createElement('div');
+        lbl.style.marginTop='4px';
+        lbl.style.fontSize='0.9em';
+        lbl.innerText = w.dataset.desc;
+        box.append(lbl);
+      }
+      w.dataset.state = states[idx];
+    }
+    box.onclick = ()=>{
+      idx = (idx+1)%states.length;
+      render();
+      saveCurrentScreen();
+    };
+    render();
+    return { w, cont };
+  },
+
+  // ─ Event Countdown ─
+  eventCountdown: cfg => {
+    const { w, cont } = createWidget('eventCountdown', cfg);
+    widgetRegistry.eventCountdown.settings = (w,panel) => {
+      panel.innerHTML += `
+        <label>Title: <input id="evtTitle" value="${w.dataset.title||'Event'}"/></label>
+        <label>Date: <input type="date" id="evtDate" value="${w.dataset.date||''}"/></label>
+      `;
+      panel.querySelector('#evtTitle').oninput = e => {
+        w.dataset.title = e.target.value; update(); saveCurrentScreen();
+      };
+      panel.querySelector('#evtDate').onchange = e => {
+        w.dataset.date = e.target.value; update(); saveCurrentScreen();
+      };
+    };
+    const disp = document.createElement('div');
+    disp.style.flex='1'; disp.style.display='flex';
+    disp.style.flexDirection='column';
+    disp.style.alignItems='center';
+    disp.style.justifyContent='center';
+    disp.style.fontSize='1.2em';
+    cont.append(disp);
+
+    function update() {
+      const title = w.dataset.title || 'Event';
+      const d = new Date(w.dataset.date);
+      const now = new Date();
+      const diff = Math.max(0, Math.ceil((d - now)/(1000*60*60*24)));
+      disp.innerHTML = `<strong>${title}</strong><br>${diff} day${diff===1?'':'s'} left`;
+    }
+    if (!cfg?.date) {
+      w.dataset.date = new Date().toISOString().substr(0,10);
+    }
+    update();
+    setInterval(update, 1000*60*60); // refresh hourly
     return { w, cont };
   }
-
 };
