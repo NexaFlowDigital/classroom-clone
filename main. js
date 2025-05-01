@@ -1,0 +1,15 @@
+// Entry point for Classroom Screen Clone (ES Module)
+
+import { initScreens, switchScreen } from './core/screen.js';
+import { registerWidgets } from './widgets/registry.js';
+import { setupToolbar } from './ui/toolbar.js';
+import { setupAnnotation } from './ui/annotation.js';
+import { setupSettings } from './ui/settings.js';
+
+window.addEventListener('DOMContentLoaded', () => {
+  registerWidgets();
+  initScreens();
+  setupToolbar();
+  setupAnnotation();
+  setupSettings();
+});
