@@ -10,59 +10,69 @@
   <!-- Screen Tabs -->
   <div id="screenTabs"></div>
 
-  <!-- Canvas -->
+  <!-- Main canvas -->
   <div id="canvas"></div>
 
-  <!-- Toolbar -->
+  <!-- Bottom‐center toolbar -->
   <div id="toolbar">
-    <button id="collapseBtn">▲</button>
+    <button id="collapseBtn" title="Hide toolbar">▲</button>
     <div id="tools">
-      <select id="widgetSelect">
+      <select id="widgetSelect" title="Add widget…">
         <option value="">➕ Add widget…</option>
-        <option value="screenShare">Screen Share</option>
-        <option value="setBackground">Background</option>
-        <option value="text">Text</option>
-        <option value="clock">Clock</option>
-        <option value="timer">Timer</option>
-        <option value="visualTimer">Visual Timer</option>
-        <option value="eventCountdown">Countdown</option>
-        <option value="poll">Poll</option>
-        <option value="timetable">Timetable</option>
-        <option value="randomizer">Randomizer</option>
-        <option value="groupMaker">Group Maker</option>
-        <option value="dice">Dice</option>
-        <option value="trafficLight">Traffic Light</option>
-        <option value="scoreboard">Scoreboard</option>
-        <option value="soundLevel">Sound Level</option>
-        <option value="workSymbols">Work Symbols</option>
-        <option value="stickers">Stickers</option>
-        <option value="image">Image</option>
-        <option value="video">Video</option>
-        <option value="embed">Embed</option>
-        <option value="hyperlink">Hyperlink</option>
-        <option value="restroom">Rest Room</option>
+        <optgroup label="Core">
+          <option value="screenShare">Screen Share</option>
+          <option value="setBackground">Background</option>
+          <option value="text">Text</option>
+          <option value="clock">Clock</option>
+          <option value="timer">Timer</option>
+          <option value="visualTimer">Visual Timer</option>
+          <option value="eventCountdown">Event Countdown</option>
+        </optgroup>
+        <optgroup label="Interactives">
+          <option value="poll">Poll</option>
+          <option value="timetable">Timetable</option>
+          <option value="randomizer">Randomizer</option>
+          <option value="groupMaker">Group Maker</option>
+          <option value="dice">Dice</option>
+          <option value="trafficLight">Traffic Light</option>
+          <option value="scoreboard">Scoreboard</option>
+          <option value="soundLevel">Sound Level</option>
+          <option value="workSymbols">Work Symbols</option>
+          <option value="stickers">Stickers</option>
+        </optgroup>
+        <optgroup label="Media & Embed">
+          <option value="image">Image</option>
+          <option value="video">Video</option>
+          <option value="embed">Embed</option>
+          <option value="hyperlink">Hyperlink</option>
+          <option value="qrCode">QR Code</option>
+          <option value="stopwatch">Stopwatch</option>
+          <option value="draw">Draw</option>
+          <option value="webcam">Webcam</option>
+          <option value="calendar">Calendar</option>
+        </optgroup>
       </select>
-      <button id="selectTool">🔲</button>
-      <button id="annotateTool">✏️</button>
-      <button id="undoBtn">↶</button>
-      <button id="saveBtn">💾</button>
-      <button id="settingsBtn">⚙️</button>
+      <button id="selectTool" title="Select widget">🔲</button>
+      <button id="annotateTool" title="Draw on canvas">✏️</button>
+      <button id="undoBtn" title="Undo drawing">↶</button>
+      <button id="saveBtn" title="Save screen">💾</button>
+      <button id="settingsBtn" title="Settings">⚙️</button>
     </div>
   </div>
 
-  <!-- Annotation Controls -->
+  <!-- In‐canvas annotation controls -->
   <div id="annoControls">
-    <button id="penBtn">✏️</button>
-    <input type="color" id="penColor" value="#e74c3c"/>
-    <input type="range" id="penSize" min="1" max="20" value="4"/>
-    <button id="eraserBtn">🧹</button>
+    <button id="penBtn" title="Pen">✏️</button>
+    <input type="color" id="penColor" value="#ff0000" title="Color"/>
+    <input type="range" id="penSize" min="1" max="20" value="4" title="Size"/>
+    <button id="eraserBtn" title="Eraser">🧹</button>
   </div>
 
-  <!-- Settings Panel -->
+  <!-- Settings panel -->
   <div id="settingsPanel">
-    <h3>Theme</h3>
-    <label>Toolbar: <input type="color" id="themeToolbar"/></label>
-    <label>Widget header: <input type="color" id="themeWidget"/></label>
+    <h3>Theme Settings</h3>
+    <label>Toolbar bg: <input type="color" id="themeToolbar" value="#FDEBD0"/></label>
+    <label>Widget header bg: <input type="color" id="themeWidget" value="#A9DFBF"/></label>
     <button id="closeSettings">Close</button>
   </div>
 
