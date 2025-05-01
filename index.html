@@ -7,50 +7,14 @@
   <link rel="stylesheet" href="style.css"/>
 </head>
 <body>
-  <!-- Screen Tabs -->
   <div id="screenTabs"></div>
-
-  <!-- Main Canvas -->
   <div id="canvas"></div>
-
-  <!-- Global Toolbar -->
   <div id="toolbar">
     <button id="collapseBtn" title="Hide toolbar">▲</button>
     <div id="tools">
       <select id="widgetSelect" title="Add widget…">
         <option value="">➕ Add widget…</option>
-        <optgroup label="Core">
-          <option value="screenShare">Screen Share</option>
-          <option value="text">Text</option>
-          <option value="clock">Clock</option>
-          <option value="timer">Timer</option>
-          <option value="visualTimer">Visual Timer</option>
-          <option value="eventCountdown">Countdown</option>
-        </optgroup>
-        <optgroup label="Interactive">
-          <option value="poll">Poll</option>
-          <option value="timetable">Timetable</option>
-          <option value="randomizer">Randomizer</option>
-          <option value="groupMaker">Group Maker</option>
-          <option value="dice">Dice</option>
-          <option value="trafficLight">Traffic Light</option>
-          <option value="scoreboard">Scoreboard</option>
-          <option value="soundLevel">Sound Level</option>
-          <option value="workSymbols">Work Symbols</option>
-          <option value="stickers">Stickers</option>
-          <option value="restroom">Rest Room</option>
-        </optgroup>
-        <optgroup label="Media & Tools">
-          <option value="image">Image</option>
-          <option value="video">Video</option>
-          <option value="embed">Embed</option>
-          <option value="hyperlink">Hyperlink</option>
-          <option value="qrCode">QR Code</option>
-          <option value="stopwatch">Stopwatch</option>
-          <option value="draw">Draw</option>
-          <option value="webcam">Webcam</option>
-          <option value="calendar">Calendar</option>
-        </optgroup>
+        <!-- Widget options populated dynamically -->
       </select>
       <button id="selectTool" title="Select widget">🔲</button>
       <button id="annotateTool" title="Annotate canvas">✏️</button>
@@ -62,7 +26,6 @@
     </div>
   </div>
 
-  <!-- In-canvas Annotation Controls -->
   <div id="annoControls">
     <button id="penBtn" title="Pen tool">✏️</button>
     <input type="color" id="penColor" title="Pen color" value="#FF0000"/>
@@ -70,7 +33,6 @@
     <button id="eraserBtn" title="Eraser tool">🧹</button>
   </div>
 
-  <!-- Global Settings Panel -->
   <div id="settingsPanel" class="hidden">
     <h3>Theme Settings</h3>
     <label>Toolbar bg: <input type="color" id="themeToolbar" value="#FDEBD0"/></label>
@@ -79,7 +41,6 @@
     <button id="closeSettings">Close</button>
   </div>
 
-  <!-- Per-widget Settings Panel -->
   <div id="widgetSettingsPanel" class="hidden"></div>
 
   <script src="script.js"></script>
