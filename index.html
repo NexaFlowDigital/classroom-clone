@@ -10,15 +10,16 @@
   <!-- Screen Tabs -->
   <div id="screenTabs"></div>
 
-  <!-- Main canvas -->
+  <!-- Main Canvas -->
   <div id="canvas"></div>
 
-  <!-- Bottom‐center toolbar -->
+  <!-- Global Toolbar -->
   <div id="toolbar">
     <button id="collapseBtn" title="Hide toolbar">▲</button>
     <div id="tools">
       <select id="widgetSelect" title="Add widget…">
         <option value="">➕ Add widget…</option>
+        <!-- core -->
         <optgroup label="Core">
           <option value="screenShare">Screen Share</option>
           <option value="setBackground">Background</option>
@@ -28,7 +29,8 @@
           <option value="visualTimer">Visual Timer</option>
           <option value="eventCountdown">Event Countdown</option>
         </optgroup>
-        <optgroup label="Interactives">
+        <!-- interactives -->
+        <optgroup label="Interactive">
           <option value="poll">Poll</option>
           <option value="timetable">Timetable</option>
           <option value="randomizer">Randomizer</option>
@@ -40,7 +42,8 @@
           <option value="workSymbols">Work Symbols</option>
           <option value="stickers">Stickers</option>
         </optgroup>
-        <optgroup label="Media & Embed">
+        <!-- media & tools -->
+        <optgroup label="Media & Tools">
           <option value="image">Image</option>
           <option value="video">Video</option>
           <option value="embed">Embed</option>
@@ -53,27 +56,32 @@
         </optgroup>
       </select>
       <button id="selectTool" title="Select widget">🔲</button>
-      <button id="annotateTool" title="Draw on canvas">✏️</button>
-      <button id="undoBtn" title="Undo drawing">↶</button>
+      <button id="annotateTool" title="Annotate canvas">✏️</button>
+      <button id="undoBtn" title="Undo annotation">↶</button>
       <button id="saveBtn" title="Save screen">💾</button>
-      <button id="settingsBtn" title="Settings">⚙️</button>
+      <button id="settingsBtn" title="Global settings">⚙️</button>
     </div>
   </div>
 
-  <!-- In‐canvas annotation controls -->
+  <!-- In-canvas Annotation Controls -->
   <div id="annoControls">
-    <button id="penBtn" title="Pen">✏️</button>
-    <input type="color" id="penColor" value="#ff0000" title="Color"/>
-    <input type="range" id="penSize" min="1" max="20" value="4" title="Size"/>
-    <button id="eraserBtn" title="Eraser">🧹</button>
+    <button id="penBtn" title="Pen tool">✏️</button>
+    <input type="color" id="penColor" title="Pen color" value="#FF0000"/>
+    <input type="range" id="penSize" title="Pen size" min="1" max="20" value="4"/>
+    <button id="eraserBtn" title="Eraser tool">🧹</button>
   </div>
 
-  <!-- Settings panel -->
-  <div id="settingsPanel">
+  <!-- Global Settings Panel -->
+  <div id="settingsPanel" class="hidden">
     <h3>Theme Settings</h3>
     <label>Toolbar bg: <input type="color" id="themeToolbar" value="#FDEBD0"/></label>
     <label>Widget header bg: <input type="color" id="themeWidget" value="#A9DFBF"/></label>
     <button id="closeSettings">Close</button>
+  </div>
+
+  <!-- Per-widget Settings Panel -->
+  <div id="widgetSettingsPanel" class="hidden">
+    <!-- Filled dynamically when a widget is selected/hovered -->
   </div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
