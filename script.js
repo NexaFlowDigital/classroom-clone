@@ -1,6 +1,6 @@
 // script.js
 
-// ─── In-Memory Screen Store ───
+// ─── In‐Memory Screens ───
 let screens = { 'Screen 1': [] };
 let activeScreen = 'Screen 1';
 let topZ = 1000, bottomZ = 0;
@@ -33,11 +33,12 @@ function createWidget(type, cfg) {
   const w = document.createElement('div');
   w.className = 'widget';
   w.dataset.type = type;
-  // Position & size from cfg
+
+  // Restore or default position & size
   if (cfg) {
     ['left','top','width','height','z','locked'].forEach(p => {
       if (cfg[p] !== undefined) {
-        if (p === 'locked') w.dataset.locked = cfg.locked;
+        if (p === 'locked') w.dataset.locked = cfg[p];
         else w.style[p] = cfg[p];
       }
     });
@@ -53,7 +54,7 @@ function createWidget(type, cfg) {
   }
   w.style.resize = w.dataset.locked==='true'?'none':'both';
 
-  // Content container
+  // Content area
   const cont = document.createElement('div');
   cont.className = 'content';
   w.appendChild(cont);
@@ -66,14 +67,15 @@ function createWidget(type, cfg) {
   document.getElementById('canvas').appendChild(w);
   makeDraggable(w);
 
-  // Open settings on ⚙️ click
+  // Open settings on icon click
   w.addEventListener('click', e => {
-    const rect = w.getBoundingClientRect();
-    const isIcon =
-      e.clientX >= rect.right - 24 &&
-      e.clientX <= rect.right &&
-      e.clientY >= rect.top &&
-      e.clientY <= rect.top + 24;
+    const r = w.getBoundingClientRect();
+    const isIcon = (
+      e.clientX >= r.right-24 &&
+      e.clientX <= r.right &&
+      e.clientY >= r.top &&
+      e.clientY <= r.top+24
+    );
     if (isIcon) {
       e.stopPropagation();
       openWidgetSettings(w);
@@ -83,7 +85,7 @@ function createWidget(type, cfg) {
   return { w, cont };
 }
 
-// ─── Remove Background Widget Option ───
+// ─── Remove Background Option ───
 document.addEventListener('DOMContentLoaded', () => {
   const sel = document.getElementById('widgetSelect');
   const bgOpt = sel.querySelector('option[value="setBackground"]');
@@ -98,7 +100,7 @@ document.addEventListener('DOMContentLoaded', () => {
   sp.insertBefore(lbl, sp.querySelector('#closeSettings'));
   document.getElementById('canvasBg').oninput = e => {
     document.getElementById('canvas').style.background = e.target.value;
-    // TODO: Save global background to Firebase
+    // TODO: Save to Firebase
   };
 });
 
@@ -108,7 +110,7 @@ function initScreens() {
   loadScreen(activeScreen);
 }
 function persistScreens() {
-  // TODO: push 'screens' & 'activeScreen' to Firebase
+  // TODO: Save `screens` & `activeScreen` to Firebase
 }
 function renderScreenTabs() {
   const tabs = document.getElementById('screenTabs');
@@ -229,12 +231,10 @@ function openWidgetSettings(widget) {
 
   // Handlers
   gen.querySelector('#bringFront').onclick = () => {
-    widget.style.zIndex = ++topZ;
-    saveCurrentScreen(); widgetSettingsPanel.classList.add('hidden');
+    widget.style.zIndex = ++topZ; saveCurrentScreen(); widgetSettingsPanel.classList.add('hidden');
   };
   gen.querySelector('#sendBack').onclick = () => {
-    widget.style.zIndex = --bottomZ;
-    saveCurrentScreen(); widgetSettingsPanel.classList.add('hidden');
+    widget.style.zIndex = --bottomZ; saveCurrentScreen(); widgetSettingsPanel.classList.add('hidden');
   };
   gen.querySelector('#moveForward').onclick = () => {
     widget.style.zIndex = parseInt(widget.style.zIndex||0)+1;
@@ -277,8 +277,8 @@ document.addEventListener('DOMContentLoaded', () => {
         tools       = document.getElementById('tools');
   collapseBtn.onclick = () => {
     const hidden = tools.style.display==='none';
-    tools.style.display = hidden ? 'flex' : 'none';
-    collapseBtn.innerText = hidden ? '▲' : '▼';
+    tools.style.display = hidden?'flex':'none';
+    collapseBtn.innerText = hidden?'▲':'▼';
   };
 
   // Global settings panel
@@ -290,14 +290,14 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('themeWidget').oninput = e =>
     document.documentElement.style.setProperty('--widget-header-bg', e.target.value);
 
-  // Annotation
+  // Annotation toggle
   const annoBtn = document.getElementById('annotateTool');
   annoBtn.onclick = () => {
     annotating = !annotating;
-    annoBtn.style.opacity = annotating ? '1' : '0.6';
-    document.getElementById('annoControls').style.display = annotating ? 'flex' : 'none';
+    annoBtn.style.opacity = annotating?'1':'0.6';
+    document.getElementById('annoControls').style.display = annotating?'flex':'none';
     initAnnotation();
-    annoCanvas.style.pointerEvents = annotating ? 'auto' : 'none';
+    annoCanvas.style.pointerEvents = annotating?'auto':'none';
     annoCtx.globalCompositeOperation = 'source-over';
   };
   document.getElementById('penBtn').onclick   = () => annoCtx.globalCompositeOperation = 'source-over';
@@ -317,7 +317,7 @@ document.addEventListener('DOMContentLoaded', () => {
     saveCurrentScreen();
   };
 
-  // Save
+  // Save screen
   document.getElementById('saveBtn').onclick = () => {
     saveCurrentScreen();
     alert('Screen saved in memory. // TODO: push to Firebase');
@@ -336,13 +336,15 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   selectBtn.onclick = () => {
     selecting = !selecting;
-    selectBtn.style.opacity = selecting ? '1' : '0.6';
+    selectBtn.style.opacity = selecting?'1':'0.6';
     document.addEventListener('click', onSelect, true);
     if (!selecting) document.removeEventListener('click', onSelect, true);
   };
 
-  // Add widget
-  document.getElementById('widgetSelect').onchange = e => {
+  // Add widget + debug
+  const picker = document.getElementById('widgetSelect');
+  picker.addEventListener('change', e => console.log('Adding widget:', e.target.value));
+  picker.onchange = e => {
     const type = e.target.value;
     if (type && widgetRegistry[type]) {
       widgetRegistry[type]();
@@ -364,60 +366,56 @@ const widgetRegistry = {
   // ─ Text ─
   text: cfg => {
     const { w, cont } = createWidget('text', cfg);
-    // Settings hook
-    widgetRegistry.text.settings = (w, panel) => {
+    widgetRegistry.text.settings = (w,panel) => {
+      const div = cont.querySelector('div');
       panel.innerHTML += `
-        <label>Text color: <input type="color" id="txtColor" value="${w.dataset.txtColor||'#000000'}"/></label>
-        <label>BG color: <input type="color" id="bgColor" value="${w.dataset.bgColor||'#ffffff'}"/></label>
+        <label>Text color: <input type="color" id="txtColor" value="${w.dataset.txtColor||'#000'}"/></label>
+        <label>BG color: <input type="color" id="bgColor" value="${w.dataset.bgColor||'#fff'}"/></label>
         <label>Font size:
           <select id="txtSize">
             <option value="12px">12</option>
             <option value="14px" selected>14</option>
             <option value="18px">18</option>
             <option value="24px">24</option>
-            <option value="32px">32</option>
           </select>
         </label>
       `;
       panel.querySelector('#txtColor').oninput = e => {
-        ta.style.color = e.target.value;
+        div.style.color = e.target.value;
         w.dataset.txtColor = e.target.value; saveCurrentScreen();
       };
       panel.querySelector('#bgColor').oninput = e => {
-        ta.style.background = e.target.value;
+        div.style.background = e.target.value;
         w.dataset.bgColor = e.target.value; saveCurrentScreen();
       };
       panel.querySelector('#txtSize').onchange = e => {
-        ta.style.fontSize = e.target.value;
+        div.style.fontSize = e.target.value;
         w.dataset.txtSize = e.target.value; saveCurrentScreen();
       };
     };
-
-    const ta = document.createElement('div');
-    ta.contentEditable = true;
-    ta.style.flex = '1';
-    ta.style.padding = '4px';
-    ta.style.overflow = 'auto';
-    ta.innerHTML = cfg?.html || 'Click to edit…';
-    cont.append(ta);
-    ta.oninput = () => {
-      w.dataset.html = ta.innerHTML; saveCurrentScreen();
+    const div = document.createElement('div');
+    div.contentEditable = true;
+    div.style.flex = '1';
+    div.style.padding = '4px';
+    div.style.overflow = 'auto';
+    div.style.fontSize = cfg?.txtSize||'14px';
+    div.style.color    = cfg?.txtColor||'#000';
+    div.style.background = cfg?.bgColor||'#fff';
+    div.innerHTML = cfg?.html || 'Click to edit…';
+    cont.append(div);
+    div.oninput = () => {
+      w.dataset.html = div.innerHTML; saveCurrentScreen();
     };
-    // Apply initial styles
-    if (cfg?.txtColor) ta.style.color = cfg.txtColor;
-    if (cfg?.bgColor) ta.style.background = cfg.bgColor;
-    if (cfg?.txtSize) ta.style.fontSize = cfg.txtSize;
     return { w, cont };
   },
 
   // ─ Timer ─
   timer: cfg => {
     const { w, cont } = createWidget('timer', cfg);
-    // Settings hook
-    widgetRegistry.timer.settings = (w, panel) => {
+    widgetRegistry.timer.settings = (w,panel) => {
       panel.innerHTML += `
-        <label>Text color: <input type="color" id="tmTxt" value="${w.dataset.txtColor||'#000000'}"/></label>
-        <label>BG color: <input type="color" id="tmBg" value="${w.dataset.bgColor||'#ffffff'}"/></label>
+        <label>Text color: <input type="color" id="tmTxt" value="${w.dataset.txtColor||'#000'}"/></label>
+        <label>BG color: <input type="color" id="tmBg" value="${w.dataset.bgColor||'#fff'}"/></label>
         <label>Font size:
           <select id="tmSize">
             <option value="14px">14</option>
@@ -440,7 +438,7 @@ const widgetRegistry = {
       };
     };
 
-    // Toolbar controls
+    // Controls
     const bar1 = document.createElement('div'); bar1.className='widget-toolbar';
     bar1.innerHTML = `
       <button id="minusMin">– Min</button>
@@ -450,20 +448,18 @@ const widgetRegistry = {
     `;
     cont.append(bar1);
 
-    // Display
     const disp = document.createElement('div');
-    disp.className = 'timer-display';
-    disp.style.flex = '1';
+    disp.className='timer-display';
+    disp.style.flex='1';
+    disp.style.textAlign='center';
+    disp.style.display='flex';
+    disp.style.alignItems='center';
+    disp.style.justifyContent='center';
     disp.style.fontSize = cfg?.size||'18px';
-    disp.style.color = cfg?.txtColor||'#000';
+    disp.style.color    = cfg?.txtColor||'#000';
     disp.style.background = cfg?.bgColor||'#fff';
-    disp.style.textAlign = 'center';
-    disp.style.display = 'flex';
-    disp.style.alignItems = 'center';
-    disp.style.justifyContent = 'center';
     cont.append(disp);
 
-    // Controls
     const bar2 = document.createElement('div'); bar2.className='widget-toolbar';
     bar2.innerHTML = `
       <button id="startBtn">▶️</button>
@@ -474,29 +470,18 @@ const widgetRegistry = {
 
     // Logic
     let total = +(w.dataset.total||cfg?.total||60);
-    let intervalId = null;
+    let id = null;
     function update() {
       disp.innerText = formatTime(total);
       w.dataset.total = total;
     }
-    bar1.querySelector('#plusMin').onclick = ()=>{ total+=60; update(); saveCurrentScreen(); };
-    bar1.querySelector('#minusMin').onclick = ()=>{ total=Math.max(0,total-60); update(); saveCurrentScreen(); };
-    bar1.querySelector('#plusSec').onclick = ()=>{ total++; update(); saveCurrentScreen(); };
-    bar1.querySelector('#minusSec').onclick = ()=>{ total=Math.max(0,total-1); update(); saveCurrentScreen(); };
-
-    bar2.querySelector('#startBtn').onclick = ()=>{
-      if (intervalId) return;
-      intervalId = setInterval(()=>{
-        if (total>0) { total--; update(); saveCurrentScreen(); }
-        else clearInterval(intervalId);
-      }, 1000);
-    };
-    bar2.querySelector('#pauseBtn').onclick = ()=>{ clearInterval(intervalId); intervalId = null; };
-    bar2.querySelector('#resetBtn').onclick = ()=>{
-      clearInterval(intervalId); intervalId = null;
-      total = +(cfg?.total||60);
-      update(); saveCurrentScreen();
-    };
+    bar1.querySelector('#plusMin').onclick    = ()=>{ total+=60; update(); saveCurrentScreen(); };
+    bar1.querySelector('#minusMin').onclick   = ()=>{ total=Math.max(0,total-60); update(); saveCurrentScreen(); };
+    bar1.querySelector('#plusSec').onclick    = ()=>{ total++; update(); saveCurrentScreen(); };
+    bar1.querySelector('#minusSec').onclick   = ()=>{ total=Math.max(0,total-1); update(); saveCurrentScreen(); };
+    bar2.querySelector('#startBtn').onclick   = ()=>{ if(id) return; id=setInterval(()=>{ if(total>0){total--;update();saveCurrentScreen()}else clearInterval(id); },1000); };
+    bar2.querySelector('#pauseBtn').onclick   = ()=>{ clearInterval(id); id=null; };
+    bar2.querySelector('#resetBtn').onclick   = ()=>{ clearInterval(id); id=null; total=+(cfg?.total||60); update(); saveCurrentScreen(); };
 
     update();
     return { w, cont };
@@ -505,16 +490,14 @@ const widgetRegistry = {
   // ─ Clock ─
   clock: cfg => {
     const { w, cont } = createWidget('clock', cfg);
-    widgetRegistry.clock.settings = (w, panel) => {
+    widgetRegistry.clock.settings = (w,panel) => {
       panel.innerHTML += `
         <button id="toggle24">${w.dataset.format24==='true'?'24hr':'12hr'}</button>
-        <label>Text color: <input type="color" id="clkColor" value="${w.dataset.color||'#000000'}"/></label>
+        <label>Text color: <input type="color" id="clkColor" value="${w.dataset.color||'#000'}"/></label>
       `;
       panel.querySelector('#toggle24').onclick = e => {
         const f24 = w.dataset.format24!=='true';
-        w.dataset.format24 = f24;
-        e.target.innerText = f24?'24hr':'12hr';
-        saveCurrentScreen();
+        w.dataset.format24 = f24; e.target.innerText = f24?'24hr':'12hr'; saveCurrentScreen();
       };
       panel.querySelector('#clkColor').oninput = e => {
         disp.style.color = e.target.value;
@@ -522,22 +505,17 @@ const widgetRegistry = {
       };
     };
 
-    // Settings & display
     const disp = document.createElement('div');
-    disp.style.flex = '1';
-    disp.style.fontSize = '24px';
+    disp.style.flex='1'; disp.style.fontSize='24px'; disp.style.textAlign='center';
     disp.style.color = cfg?.color||'#000';
-    disp.style.textAlign = 'center';
     cont.append(disp);
 
-    function update() {
+    function update(){
       const now = new Date();
-      const opts = w.dataset.format24==='true'
-        ? {}
-        : { hour12: true };
-      disp.innerText = now.toLocaleTimeString(undefined, opts);
+      const opts = w.dataset.format24==='true'?{}:{hour12:true};
+      disp.innerText = now.toLocaleTimeString(undefined,opts);
     }
-    setInterval(update, 500);
+    setInterval(update,500);
     update();
     return { w, cont };
   },
@@ -545,42 +523,36 @@ const widgetRegistry = {
   // ─ Sound Level ─
   soundLevel: cfg => {
     const { w, cont } = createWidget('soundLevel', cfg);
-    widgetRegistry.soundLevel.settings = (w, panel) => {
+    widgetRegistry.soundLevel.settings = (w,panel) => {
       panel.innerHTML += `
-        <label>Sens: <input type="range" min="0" max="1" step="0.01" id="sens" value="${w.dataset.sens||0.2}"/></label>
+        <label>Sens: <input type="range" id="sens" min="0" max="1" step="0.01" value="${w.dataset.sens||0.2}"/></label>
       `;
       panel.querySelector('#sens').oninput = e => {
         w.dataset.sens = e.target.value; saveCurrentScreen();
       };
     };
 
-    // Meter
     const meter = document.createElement('div');
-    meter.style.flex='1';
-    meter.style.background='#eee';
-    meter.style.height='20px';
+    meter.style.flex='1'; meter.style.background='#eee'; meter.style.height='20px';
     cont.append(meter);
 
-    // Audio smoothing
-    let sens = +(w.dataset.sens||0.2);
+    let sens=+(w.dataset.sens||0.2);
     navigator.mediaDevices.getUserMedia({audio:true})
       .then(stream => {
-        const ac = new AudioContext();
-        const src = ac.createMediaStreamSource(stream);
-        const an = ac.createAnalyser();
-        const data = new Uint8Array(an.fftSize);
+        const ac=new AudioContext(), src=ac.createMediaStreamSource(stream),
+              an=ac.createAnalyser(), data=new Uint8Array(an.fftSize);
         src.connect(an);
         function loop(){
           an.getByteTimeDomainData(data);
           let sum=0; data.forEach(v=>sum+=Math.abs(v-128));
-          const vol = Math.min(1, sum/data.length/128);
+          const vol=Math.min(1,sum/data.length/128);
           meter.style.width=(vol*100)+'%';
           meter.style.background=vol<=sens?'green':'red';
           requestAnimationFrame(loop);
         }
         loop();
       })
-      .catch(err => { cont.innerText = '❌ ' + err.message; });
+      .catch(err=>cont.innerText='❌ '+err.message);
 
     return { w, cont };
   },
@@ -602,16 +574,15 @@ const widgetRegistry = {
       };
     };
 
-    const btn = document.createElement('button');
-    btn.innerText = 'Roll 🎲';
-    const disp = document.createElement('div'); disp.style.flex='1'; disp.style.fontSize='2rem'; disp.style.textAlign='center';
-    cont.append(btn, disp);
+    const btn = document.createElement('button'); btn.innerText='Roll 🎲';
+    const disp = document.createElement('div');
+    disp.style.flex='1'; disp.style.fontSize='2rem'; disp.style.textAlign='center';
+    cont.append(btn,disp);
 
     btn.onclick = () => {
       const s = +(w.dataset.sides||cfg?.sides||6);
       disp.innerText = Math.floor(Math.random()*s)+1;
     };
-
     return { w, cont };
   },
 
@@ -625,8 +596,7 @@ const widgetRegistry = {
         </label>
       `;
       panel.querySelector('#teamCnt').oninput = e => {
-        w.dataset.count = e.target.value;
-        renderTeams(); saveCurrentScreen();
+        w.dataset.count = e.target.value; renderTeams(); saveCurrentScreen();
       };
     };
 
@@ -637,19 +607,17 @@ const widgetRegistry = {
     function renderTeams(){
       box.innerHTML='';
       const cnt = +(w.dataset.count||2);
-      for (let i=1;i<=cnt;i++){
-        const row = document.createElement('div');
+      for(let i=1;i<=cnt;i++){
+        let sc=0;
+        const row=document.createElement('div');
         row.style.display='flex'; row.style.alignItems='center'; row.style.margin='4px';
-        const lbl = document.createElement('span');
-        lbl.innerText = `Team ${i}: `;
-        const disp = document.createElement('span');
-        disp.innerText = '0'; disp.style.margin='0 8px';
-        let sc = 0;
-        const plus = document.createElement('button'); plus.innerText='+';
-        const minus= document.createElement('button'); minus.innerText='-';
-        plus.onclick = ()=>{ sc++; disp.innerText=sc; saveCurrentScreen(); };
+        const lbl=document.createElement('span'); lbl.innerText=`Team ${i}: `;
+        const disp=document.createElement('span'); disp.innerText=sc; disp.style.margin='0 8px';
+        const plus=document.createElement('button'); plus.innerText='+';
+        const minus=document.createElement('button'); minus.innerText='-';
+        plus.onclick=()=>{ sc++; disp.innerText=sc; saveCurrentScreen(); };
         minus.onclick=()=>{ sc--; disp.innerText=sc; saveCurrentScreen(); };
-        row.append(lbl, minus, disp, plus);
+        row.append(lbl,minus,disp,plus);
         box.append(row);
       }
     }
@@ -668,23 +636,20 @@ const widgetRegistry = {
         </label>
       `;
       panel.querySelector('#vtTot').oninput = e => {
-        w.dataset.total = e.target.value;
-        resetTimer(); saveCurrentScreen();
+        w.dataset.total = e.target.value; resetTimer(); saveCurrentScreen();
       };
     };
 
     const canvas = document.createElement('canvas');
-    canvas.width = canvas.height = 120;
+    canvas.width=canvas.height=120;
     cont.append(canvas);
-    const ctx = canvas.getContext('2d');
+    const ctx=canvas.getContext('2d');
 
-    let total = +(w.dataset.total||cfg?.total||60);
-    let rem   = total;
-    let id;
-
+    let total=+(w.dataset.total||cfg?.total||60);
+    let rem=total, id;
     function draw(){
       ctx.clearRect(0,0,120,120);
-      const pct = rem/total;
+      const pct=rem/total;
       ctx.beginPath();
       ctx.arc(60,60,54,-Math.PI/2,-Math.PI/2+2*Math.PI*pct);
       ctx.lineWidth=10; ctx.stroke();
@@ -692,18 +657,14 @@ const widgetRegistry = {
       ctx.fillText(formatTime(rem),60,60);
       w.dataset.total=total; w.dataset.remaining=rem;
     }
-
     function resetTimer(){
       clearInterval(id);
-      total = +(w.dataset.total);
-      rem = total;
+      total=+(w.dataset.total); rem=total;
       draw();
     }
-
-    // Start automatically
     draw();
-    id = setInterval(()=>{
-      if (rem>0){ rem--; draw(); saveCurrentScreen(); }
+    id=setInterval(()=>{
+      if(rem>0){ rem--; draw(); saveCurrentScreen(); }
       else clearInterval(id);
     },1000);
 
@@ -723,55 +684,41 @@ const widgetRegistry = {
         </select>
       `;
       panel.querySelector('#clearDraw').onclick = () => {
-        ctx.clearRect(0,0,canvas.width,canvas.height);
-        saveCurrentScreen();
-      };
+        ctx.clearRect(0,0,canvas.width,canvas.height); saveCurrentScreen(); };
       panel.querySelector('#pattern').onchange = e => {
-        w.dataset.pattern = e.target.value;
-        // TODO: apply pattern
-        saveCurrentScreen();
+        w.dataset.pattern=e.target.value; /* TODO: apply pattern */ saveCurrentScreen();
       };
     };
 
     const bar = document.createElement('div'); bar.className='widget-toolbar';
-    bar.innerHTML = `
+    bar.innerHTML=`
       <button id="drawPen">✏️</button>
       <button id="drawEraser">🧹</button>
-      <input type="color" id="drawColor" value="${w.dataset.color||'#000000'}"/>
+      <input type="color" id="drawColor" value="${w.dataset.color||'#000'}"/>
       <input type="range" id="drawSize" min="1" max="20" value="${w.dataset.size||4}"/>
     `;
     cont.append(bar);
 
     const canvas = document.createElement('canvas');
-    canvas.width = cont.clientWidth; canvas.height = cont.clientHeight - bar.offsetHeight;
+    canvas.width=cont.clientWidth; canvas.height=cont.clientHeight-bar.offsetHeight;
     cont.append(canvas);
-    const ctx = canvas.getContext('2d');
-    ctx.lineCap = 'round';
+    const ctx=canvas.getContext('2d');
+    ctx.lineCap='round';
     let drawing=false;
 
     function setMode(m){
       ctx.globalCompositeOperation = m==='erase'?'destination-out':'source-over';
     }
-    bar.querySelector('#drawPen').onclick    = () => setMode('pen');
-    bar.querySelector('#drawEraser').onclick = () => setMode('erase');
-    bar.querySelector('#drawColor').oninput   = e => { ctx.strokeStyle = e.target.value; w.dataset.color=e.target.value; saveCurrentScreen(); };
-    bar.querySelector('#drawSize').oninput    = e => { ctx.lineWidth = e.target.value; w.dataset.size=e.target.value; saveCurrentScreen(); };
+    bar.querySelector('#drawPen').onclick    = ()=>setMode('pen');
+    bar.querySelector('#drawEraser').onclick = ()=>setMode('erase');
+    bar.querySelector('#drawColor').oninput   = e=>{ctx.strokeStyle=e.target.value;w.dataset.color=e.target.value;saveCurrentScreen()};
+    bar.querySelector('#drawSize').oninput    = e=>{ctx.lineWidth=e.target.value;w.dataset.size=e.target.value;saveCurrentScreen()};
 
-    canvas.onmousedown = e => {
-      drawing = true; ctx.beginPath(); ctx.moveTo(e.offsetX,e.offsetY);
-    };
-    canvas.onmousemove = e => {
-      if (!drawing) return; ctx.lineTo(e.offsetX,e.offsetY); ctx.stroke();
-    };
-    document.onmouseup = () => {
-      if (drawing) { drawing=false; saveCurrentScreen(); }
-    };
+    canvas.onmousedown=e=>{drawing=true;ctx.beginPath();ctx.moveTo(e.offsetX,e.offsetY)};
+    canvas.onmousemove=e=>{if(!drawing)return;ctx.lineTo(e.offsetX,e.offsetY);ctx.stroke()};
+    document.onmouseup=()=>{if(drawing){drawing=false;saveCurrentScreen()}};
 
-    // Init
-    setMode('pen');
-    ctx.strokeStyle = w.dataset.color || '#000';
-    ctx.lineWidth   = w.dataset.size  || 4;
-
+    setMode('pen');ctx.strokeStyle=w.dataset.color||'#000';ctx.lineWidth=w.dataset.size||4;
     return { w, cont };
   },
 
@@ -786,59 +733,42 @@ const widgetRegistry = {
             <option value="1">Monday</option>
           </select>
         </label>
-        <label><input type="checkbox" id="showWeekends" ${w.dataset.showWeekends!=='false'?'checked':''}/> Show weekends</label>
+        <label><input type="checkbox" id="showWeekends" checked/> Show weekends</label>
       `;
-      panel.querySelector('#startDay').onchange = e => {
-        w.dataset.startDay = e.target.value; render(); saveCurrentScreen();
-      };
-      panel.querySelector('#showWeekends').onchange = e => {
-        w.dataset.showWeekends = e.target.checked; render(); saveCurrentScreen();
-      };
+      panel.querySelector('#startDay').onchange = e=>{w.dataset.startDay=e.target.value;render();saveCurrentScreen()};
+      panel.querySelector('#showWeekends').onchange = e=>{w.dataset.showWeekends=e.target.checked;render();saveCurrentScreen()};
     };
 
     const bar = document.createElement('div'); bar.className='widget-toolbar';
     bar.innerHTML = `<button id="prev">‹</button><span id="title"></span><button id="next">›</button>`;
     cont.append(bar);
     const grid = document.createElement('div');
-    grid.style.display = 'grid';
-    grid.style.gridTemplateColumns = 'repeat(7,1fr)';
-    grid.style.flex='1';
-    grid.style.gap='2px';
+    grid.style.display='grid'; grid.style.gridTemplateColumns='repeat(7,1fr)'; grid.style.flex='1'; grid.style.gap='2px';
     cont.append(grid);
 
-    let date = cfg?.date ? new Date(cfg.date) : new Date();
+    let date = cfg?.date?new Date(cfg.date):new Date();
     w.dataset.date = date.toISOString();
 
     function render(){
       grid.innerHTML = '';
-      const sd = +(w.dataset.startDay||0);
       const showWd = w.dataset.showWeekends!=='false';
-      document.getElementById('title').innerText =
-        date.toLocaleString('default',{month:'long',year:'numeric'});
+      document.getElementById('title').innerText = date.toLocaleString('default',{month:'long',year:'numeric'});
       ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].forEach((d,i)=>{
-        if (!showWd && (i===0||i===6)) return;
-        const hd=document.createElement('div'); hd.style.fontWeight='bold';
-        hd.innerText = d; grid.append(hd);
+        if(!showWd && (i===0||i===6)) return;
+        const hd=document.createElement('div');hd.style.fontWeight='bold';hd.innerText=d;grid.append(hd);
       });
-      const firstDay = new Date(date.getFullYear(),date.getMonth(),1).getDay();
-      const days = new Date(date.getFullYear(),date.getMonth()+1,0).getDate();
-      for (let i=0;i<firstDay;i++){
-        const blank=document.createElement('div');
-        if (!showWd && (i===0||i===6)) continue;
-        grid.append(blank);
-      }
-      for (let d=1; d<=days; d++){
-        const cell=document.createElement('div');
-        cell.innerText=d;
-        cell.style.cursor='pointer';
-        cell.onclick=()=>{ w.dataset.selected=d; saveCurrentScreen(); };
+      const fd=new Date(date.getFullYear(),date.getMonth(),1).getDay();
+      for(let i=0;i<fd;i++) if(showWd||(i>0&&i<6))grid.append(document.createElement('div'));
+      const days=new Date(date.getFullYear(),date.getMonth()+1,0).getDate();
+      for(let d=1;d<=days;d++){
+        const cell=document.createElement('div');cell.innerText=d;cell.style.cursor='pointer';
+        cell.onclick=()=>{w.dataset.selected=d;saveCurrentScreen()};
         grid.append(cell);
       }
     }
 
-    bar.querySelector('#prev').onclick = ()=>{ date.setMonth(date.getMonth()-1); render(); };
-    bar.querySelector('#next').onclick = ()=>{ date.setMonth(date.getMonth()+1); render(); };
-
+    bar.querySelector('#prev').onclick = ()=>{date.setMonth(date.getMonth()-1);render()};
+    bar.querySelector('#next').onclick = ()=>{date.setMonth(date.getMonth()+1);render()};
     render();
     return { w, cont };
   },
@@ -846,29 +776,299 @@ const widgetRegistry = {
   // ─ Screen Share ─
   screenShare: cfg => {
     const { w, cont } = createWidget('screenShare', cfg);
-    widgetRegistry.screenShare.settings = () => {}; // no extras
+    widgetRegistry.screenShare.settings = () => {};
     navigator.mediaDevices.getDisplayMedia({video:true})
-      .then(stream => {
-        const vid = document.createElement('video');
-        vid.srcObject = stream; vid.autoplay = true;
-        vid.style.flex='1'; vid.style.objectFit='contain';
-        cont.append(vid);
+      .then(s=>{
+        const v=document.createElement('video');
+        v.srcObject=s; v.autoplay=true; Object.assign(v.style,{flex:'1',objectFit:'contain'});
+        cont.append(v);
       })
-      .catch(err => cont.innerText = '❌ '+err.message);
+      .catch(err=>cont.innerText='❌ '+err.message);
     return { w, cont };
   },
 
-  // ─ Placeholders for others ─
-  poll:           cfg => createWidget('poll',cfg),
-  timetable:      cfg => createWidget('timetable',cfg),
-  randomizer:     cfg => createWidget('randomizer',cfg),
-  groupMaker:     cfg => createWidget('groupMaker',cfg),
-  stickers:       cfg => createWidget('stickers',cfg),
-  image:          cfg => createWidget('image',cfg),
-  video:          cfg => createWidget('video',cfg),
-  embed:          cfg => createWidget('embed',cfg),
-  hyperlink:      cfg => createWidget('hyperlink',cfg),
-  qrCode:         cfg => createWidget('qrCode',cfg),
-  stopwatch:      cfg => createWidget('stopwatch',cfg),
-  webcam:         cfg => createWidget('webcam',cfg)
+  // ─ Poll ─
+  poll: cfg => {
+    const { w, cont } = createWidget('poll', cfg);
+    widgetRegistry.poll.settings = (w,panel) => {
+      panel.innerHTML += `
+        <button id="resetPoll">Reset</button>
+      `;
+      panel.querySelector('#resetPoll').onclick = ()=>{counts.fill(0); update(); saveCurrentScreen()};
+    };
+    const q = cfg?.q||prompt('Question:')||'...?';
+    const opts = cfg?.opts?cfg.opts.split(','):prompt('Options, comma:','Yes,No').split(',');
+    let counts = cfg?.counts?cfg.counts.split(',').map(Number):opts.map(_=>0);
+    w.dataset.q=q; w.dataset.opts=opts.join(','); w.dataset.counts=counts.join(',');
+    cont.innerHTML = `<strong>${q}</strong><br>`;
+    function update(){
+      cont.innerHTML = `<strong>${q}</strong><br>`;
+      opts.forEach((o,i)=>{
+        const btn=document.createElement('button');
+        btn.innerText=`${o.trim()} (${counts[i]})`;
+        btn.onclick=()=>{counts[i]++;w.dataset.counts=counts.join(',');update();saveCurrentScreen()};
+        cont.append(btn,document.createElement('br'));
+      });
+    }
+    update();
+    return { w, cont };
+  },
+
+  // ─ Timetable ─
+  timetable: cfg => {
+    const { w, cont } = createWidget('timetable', cfg);
+    widgetRegistry.timetable.settings = (w,panel) => {
+      panel.innerHTML += `<button id="toggleMode">Toggle Mode</button>`;
+      // TODO: implement mode toggle
+    };
+    const list = document.createElement('div');
+    list.style.flex='1'; list.style.overflow='auto';
+    list.innerHTML = cfg?.html||'<div>8:00 – <span contentEditable>Activity</span></div>';
+    cont.append(list);
+    const bar = document.createElement('div'); bar.className='widget-toolbar';
+    bar.innerHTML = `<button id="addAct">+ Activity</button>`;
+    cont.insertBefore(bar,list);
+    bar.querySelector('#addAct').onclick = ()=>{
+      const t=prompt('Time:'),a=prompt('Activity:');
+      if(t&&a){
+        const row=document.createElement('div');
+        row.innerHTML=`${t} – <span contentEditable>${a}</span>`;
+        list.append(row);
+        w.dataset.html=list.innerHTML; saveCurrentScreen();
+      }
+    };
+    return { w, cont };
+  },
+
+  // ─ Randomizer ─
+  randomizer: cfg => {
+    const { w, cont } = createWidget('randomizer', cfg);
+    widgetRegistry.randomizer.settings = (w,panel) => {};
+    const items = cfg?.items?cfg.items.split(','):prompt('Items, comma:','A,B,C').split(',');
+    w.dataset.items=items.join(',');
+    const btn=document.createElement('button'); btn.innerText='Shuffle';
+    const disp=document.createElement('div'); disp.style.flex='1'; disp.style.textAlign='center';
+    cont.append(btn,disp);
+    btn.onclick=()=>disp.innerText=items[Math.floor(Math.random()*items.length)];
+    return { w, cont };
+  },
+
+  // ─ Group Maker ─
+  groupMaker: cfg => {
+    const { w, cont } = createWidget('groupMaker', cfg);
+    widgetRegistry.groupMaker.settings = (w,panel) => {};
+    const names = cfg?.names?cfg.names.split(','):prompt('Names, comma:','A,B,C').split(',');
+    const size  = +cfg?.size||parseInt(prompt('Group size:'),10)||2;
+    w.dataset.names=names.join(','); w.dataset.size=size;
+    const btn=document.createElement('button'); btn.innerText='Make groups';
+    const disp=document.createElement('div'); disp.style.flex='1';
+    cont.append(btn,disp);
+    btn.onclick=()=>{
+      const arr=[...names],out=[];
+      while(arr.length) out.push(arr.splice(0,size));
+      disp.innerHTML=out.map(g=>g.join(', ')).join('<br>');
+      saveCurrentScreen();
+    };
+    return { w, cont };
+  },
+
+  // ─ Work Symbols ─
+  workSymbols: cfg => {
+    const { w, cont } = createWidget('workSymbols', cfg);
+    widgetRegistry.workSymbols.settings = (w,panel) => {};
+    const syms=['✏️','☕️','✅','🔴']; let i=+w.dataset.idx||0;
+    const btn=document.createElement('button'); btn.innerText='Next';
+    const disp=document.createElement('div'); disp.style.flex='1'; disp.style.fontSize='2rem'; disp.style.textAlign='center';
+    cont.append(disp,btn);
+    btn.onclick=()=>{ i=(i+1)%syms.length; disp.innerText=syms[i]; w.dataset.idx=i; saveCurrentScreen(); };
+    disp.innerText=syms[i];
+    return { w, cont };
+  },
+
+  // ─ Stickers ─
+  stickers: cfg => {
+    const { w, cont } = createWidget('stickers', cfg);
+    widgetRegistry.stickers.settings = (w,panel) => {};
+    const gallery=document.createElement('div');
+    gallery.style.flex='1'; gallery.style.display='flex'; gallery.style.flexWrap='wrap';
+    cont.append(gallery);
+    const btn=document.createElement('button'); btn.innerText='+Sticker';
+    cont.insertBefore(btn,gallery);
+    btn.onclick=()=>{
+      const url=prompt('Sticker URL:');
+      if(url){
+        const img=document.createElement('img');
+        img.src=url; img.style.width='50px'; img.style.height='50px'; img.style.cursor='move';
+        gallery.append(img);
+        w.dataset.html=gallery.innerHTML; saveCurrentScreen();
+        makeDraggable(img);
+      }
+    };
+    return { w, cont };
+  },
+
+  // ─ Image ─
+  image: cfg => {
+    const { w, cont } = createWidget('image', cfg);
+    const url = cfg?.url||prompt('Image URL:');
+    if(url){
+      const img=document.createElement('img');
+      img.src=url; img.style.flex='1'; img.style.objectFit='contain';
+      cont.append(img);
+      w.dataset.url=url; saveCurrentScreen();
+    }
+    widgetRegistry.image.settings = (w,panel) => {};
+    return { w, cont };
+  },
+
+  // ─ Video ─
+  video: cfg => {
+    const { w, cont } = createWidget('video', cfg);
+    const url = cfg?.url||prompt('YouTube URL/ID:');
+    if(url){
+      const id = url.includes('v=')?url.split('v=')[1]:url;
+      const ifr=document.createElement('iframe');
+      ifr.src=`https://www.youtube.com/embed/${id}`;
+      ifr.allowFullscreen=true; ifr.style.flex='1'; ifr.style.border='none';
+      cont.append(ifr);
+      w.dataset.url=url; saveCurrentScreen();
+    }
+    widgetRegistry.video.settings = (w,panel) => {};
+    return { w, cont };
+  },
+
+  // ─ Embed ─
+  embed: cfg => {
+    const { w, cont } = createWidget('embed', cfg);
+    const bar=document.createElement('div'); bar.className='widget-toolbar';
+    bar.innerHTML='<button id="editEmbed">Edit</button>';
+    cont.append(bar);
+    const ifr=document.createElement('iframe');
+    ifr.style.flex='1'; ifr.style.border='none';
+    cont.append(ifr);
+    function setURL(u){
+      if(u.includes('docs.google.com/presentation')){
+        u=u.replace('/edit','/embed').split('&')[0];
+      }
+      ifr.src=u; w.dataset.url=u; saveCurrentScreen();
+    }
+    if(cfg?.url) setURL(cfg.url);
+    bar.querySelector('#editEmbed').onclick = ()=>{
+      const u=prompt('Embed URL:',w.dataset.url||'');
+      if(u) setURL(u);
+    };
+    widgetRegistry.embed.settings=(w,panel)=>{};
+    return { w, cont };
+  },
+
+  // ─ Hyperlink ─
+  hyperlink: cfg => {
+    const { w, cont } = createWidget('hyperlink', cfg);
+    const links = cfg?.links?JSON.parse(cfg.links):[];
+    const bar=document.createElement('div'); bar.className='widget-toolbar';
+    bar.innerHTML='<button id="addLink">+ Link</button>';
+    cont.append(bar);
+    const list=document.createElement('div'); list.style.flex='1'; cont.append(list);
+    function render(){
+      list.innerHTML='';
+      links.forEach((ln,i)=>{
+        const row=document.createElement('div');
+        row.innerHTML=`<a href="${ln.url}" target="_blank">${ln.text}</a>
+          <button data-del="${i}">✖</button>`;
+        row.querySelector('button').onclick=()=>{
+          links.splice(i,1); render();
+          w.dataset.links=JSON.stringify(links); saveCurrentScreen();
+        };
+        list.append(row);
+      });
+    }
+    bar.querySelector('#addLink').onclick=()=>{
+      const url=prompt('URL:'),txt=prompt('Text:')||url;
+      if(url){ links.push({url, text:txt}); render();
+        w.dataset.links=JSON.stringify(links); saveCurrentScreen();
+      }
+    };
+    render();
+    widgetRegistry.hyperlink.settings = (w,panel)=>{};
+    return { w, cont };
+  },
+
+  // ─ QR Code ─
+  qrCode: cfg => {
+    const { w, cont } = createWidget('qrCode', cfg);
+    const data = cfg?.data||prompt('Text/URL:');
+    if(data){
+      const img=document.createElement('img');
+      img.src=`https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(data)}&size=150x150`;
+      img.style.flex='1'; cont.append(img);
+      w.dataset.data=data; saveCurrentScreen();
+    }
+    widgetRegistry.qrCode.settings=(w,panel)=>{};
+    return { w, cont };
+  },
+
+  // ─ Stopwatch ─
+  stopwatch: cfg => {
+    const { w, cont } = createWidget('stopwatch', cfg);
+    let running=false, start=0, elapsed=+(cfg?.elapsed||0), interval;
+    const disp=document.createElement('div');
+    disp.style.flex='1'; disp.style.textAlign='center'; disp.style.fontSize='2rem';
+    cont.append(disp);
+    const bar=document.createElement('div'); bar.className='widget-toolbar';
+    bar.innerHTML=`
+      <button id="swStart">▶️</button>
+      <button id="swStop">⏸️</button>
+      <button id="swLap">🏁</button>
+    `;
+    cont.append(bar);
+    const laps=document.createElement('div'); laps.style.flex='1'; laps.style.overflow='auto';
+    cont.append(laps);
+
+    function update(){
+      const ms = running?(Date.now()-start+elapsed):elapsed;
+      disp.innerText = formatTime(Math.floor(ms/1000));
+    }
+    bar.querySelector('#swStart').onclick=()=>{
+      if(!running){ running=true; start=Date.now(); interval=setInterval(update,500); }
+    };
+    bar.querySelector('#swStop').onclick=()=>{
+      if(running){ running=false; clearInterval(interval); elapsed+=Date.now()-start; saveCurrentScreen(); }
+    };
+    bar.querySelector('#swLap').onclick=()=>{
+      const lap=document.createElement('div'); lap.innerText=disp.innerText;
+      laps.append(lap);
+    };
+    update();
+    widgetRegistry.stopwatch.settings=(w,panel)=>{};
+    return { w, cont };
+  },
+
+  // ─ Webcam ─
+  webcam: cfg => {
+    const { w, cont } = createWidget('webcam', cfg);
+    widgetRegistry.webcam.settings = (w,panel)=>{};
+    const bar=document.createElement('div'); bar.className='widget-toolbar';
+    bar.innerHTML=`<button id="flip">Flip</button><button id="rotate">Rotate</button>`;
+    cont.append(bar);
+    const video=document.createElement('video');
+    video.autoplay=true; video.style.flex='1'; video.style.objectFit='cover';
+    cont.append(video);
+    navigator.mediaDevices.getUserMedia({video:true})
+      .then(s=>{ video.srcObject=s; })
+      .catch(err=>cont.innerText='❌ '+err.message);
+
+    let flipped=false, rotated=false;
+    function apply(){
+      let t='';
+      if(flipped) t+='scaleX(-1) ';
+      if(rotated) t+='rotate(90deg)';
+      video.style.transform = t;
+      w.dataset.flipped=flipped; w.dataset.rotated=rotated;
+      saveCurrentScreen();
+    }
+    bar.querySelector('#flip').onclick=()=>{ flipped=!flipped; apply(); };
+    bar.querySelector('#rotate').onclick=()=>{ rotated=!rotated; apply(); };
+    return { w, cont };
+  }
+
 };
