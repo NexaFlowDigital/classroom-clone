@@ -1,0 +1,99 @@
+// widgets/timer.js
+
+import { formatTime } from '../utils/time.js';
+
+export default function createTimerWidget(cfg = {}) {
+  const w = document.createElement('div');
+  w.className = 'widget';
+  w.dataset.type = 'timer';
+
+  Object.assign(w.style, {
+    left: cfg.left || '20px',
+    top: cfg.top || '20px',
+    width: cfg.width || '200px',
+    height: cfg.height || '150px',
+    zIndex: cfg.z || 1000,
+    resize: 'both',
+    position: 'absolute'
+  });
+  w.dataset.locked = cfg.locked || 'false';
+
+  const cont = document.createElement('div');
+  cont.className = 'content';
+
+  const bar1 = document.createElement('div');
+  bar1.className = 'widget-toolbar';
+  bar1.innerHTML = `
+    <button id="minusMin">– Min</button>
+    <button id="plusMin">+ Min</button>
+    <button id="minusSec">– Sec</button>
+    <button id="plusSec">+ Sec</button>
+  `;
+  cont.appendChild(bar1);
+
+  const disp = document.createElement('div');
+  Object.assign(disp.style, {
+    flex: '1',
+    textAlign: 'center',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: cfg.txtSize || '18px',
+    color: cfg.txtColor || '#000',
+    background: cfg.bgColor || '#fff'
+  });
+  cont.appendChild(disp);
+
+  const bar2 = document.createElement('div');
+  bar2.className = 'widget-toolbar';
+  bar2.innerHTML = `
+    <button id="startBtn">▶️</button>
+    <button id="pauseBtn">⏸️</button>
+    <button id="resetBtn">↺</button>
+  `;
+  cont.appendChild(bar2);
+
+  let total = parseInt(cfg.total || 60, 10);
+  let id = null;
+
+  function updateDisplay() {
+    disp.innerText = formatTime(total);
+    w.dataset.total = total;
+  }
+
+  bar1.querySelector('#plusMin').onclick = () => { total += 60; updateDisplay(); };
+  bar1.querySelector('#minusMin').onclick = () => { total = Math.max(0, total - 60); updateDisplay(); };
+  bar1.querySelector('#plusSec').onclick = () => { total += 1; updateDisplay(); };
+  bar1.querySelector('#minusSec').onclick = () => { total = Math.max(0, total - 1); updateDisplay(); };
+
+  bar2.querySelector('#startBtn').onclick = () => {
+    if (id) return;
+    id = setInterval(() => {
+      if (total > 0) {
+        total--;
+        updateDisplay();
+      } else {
+        clearInterval(id);
+        id = null;
+      }
+    }, 1000);
+  };
+
+  bar2.querySelector('#pauseBtn').onclick = () => {
+    clearInterval(id);
+    id = null;
+  };
+
+  bar2.querySelector('#resetBtn').onclick = () => {
+    clearInterval(id);
+    id = null;
+    total = parseInt(cfg.total || 60, 10);
+    updateDisplay();
+  };
+
+  updateDisplay();
+  w.appendChild(cont);
+  document.getElementById('canvas').appendChild(w);
+
+  return { w, cont };
+}
