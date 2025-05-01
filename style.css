@@ -13,7 +13,6 @@ body, html {
   font-family: 'Segoe UI', sans-serif;
   background: #FCF3CF;
 }
-
 /* Screen Tabs */
 #screenTabs {
   position: fixed; top: 10px; left: 50%;
@@ -32,14 +31,12 @@ body, html {
 .screenTab.active {
   box-shadow: 0 0 0 2px var(--widget-header-bg);
 }
-
 /* Canvas */
 #canvas {
   position: absolute; top: 0; left: 0;
   width: 100%; height: 100%;
   background: #fff; overflow: auto;
 }
-
 /* Global Toolbar */
 #toolbar {
   position: fixed; bottom: 0; left: 50%;
@@ -64,7 +61,6 @@ body, html {
 #toolbar button:hover, #toolbar select:hover {
   opacity: 0.7;
 }
-
 /* Annotation Controls */
 #annoControls {
   position: fixed; bottom: 50px; left: 50%;
@@ -84,10 +80,7 @@ body, html {
   border: none;
   cursor: pointer;
 }
-#annoControls input {
-  margin-right: 6px;
-}
-
+#annoControls input { margin-right: 6px; }
 /* Global Settings Panel */
 #settingsPanel {
   position: fixed; top: 20%; left: 50%;
@@ -101,9 +94,7 @@ body, html {
 #settingsPanel.hidden { display: none; }
 #settingsPanel h3 { margin-bottom: 8px; font-size: 1.2rem; }
 #settingsPanel label {
-  display: block;
-  margin: 6px 0;
-  font-size: 0.95rem;
+  display: block; margin: 6px 0; font-size: 0.95rem;
 }
 #settingsPanel button {
   margin-top: 12px;
@@ -114,7 +105,6 @@ body, html {
   color: var(--widget-header-fg);
   cursor: pointer;
 }
-
 /* Widget Settings Panel */
 #widgetSettingsPanel {
   position: absolute;
@@ -126,7 +116,6 @@ body, html {
   display: none;
 }
 #widgetSettingsPanel.hidden { display: none; }
-
 /* Widgets */
 .widget {
   position: absolute;
@@ -139,11 +128,7 @@ body, html {
   cursor: move;
   z-index: 500;
 }
-/* Hide built-in headers; use per-widget settings icon instead */
-.widget .header {
-  display: none !important;
-}
-/* Settings icon on hover/selection */
+.widget .header { display: none !important; }
 .widget:hover::before,
 .widget.selected::before {
   content: "⚙️";
@@ -153,16 +138,12 @@ body, html {
   cursor: pointer;
   z-index: 600;
 }
-
-/* Widget content area */
 .widget .content {
   padding: 8px;
   display: flex;
   flex-direction: column;
   height: 100%;
 }
-
-/* Make embedded media and canvases fill */
 .widget .content > * {
   flex: 1;
   width: 100%;
@@ -170,8 +151,7 @@ body, html {
   object-fit: contain;
   margin-top: 4px;
 }
-
-/* Traffic Light overrides */
+/* Traffic Light */
 .traffic-box {
   background: #222;
   padding: 8px;
@@ -187,4 +167,15 @@ body, html {
   background: #444;
   border: 2px solid #111;
   margin: 4px 0;
+}
+/* Timer Display */
+.timer-display {
+  font-family: monospace;
+}
+/* Widget Toolbar rows */
+.widget-toolbar {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 4px;
+  flex-wrap: wrap;
 }
