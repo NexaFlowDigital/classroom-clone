@@ -1,4 +1,4 @@
-// main.js (full version with annotation + tabs)
+// main.js (fixed version)
 
 import { widgetRegistry } from './widgets/widgetRegistry.js';
 
@@ -67,8 +67,16 @@ function loadScreen(name) {
 widgetSelect.onchange = e => {
   const type = e.target.value;
   if (type && widgetRegistry[type]) {
-    widgetRegistry[type]();
-    saveCurrentScreen();
+    try {
+      const result = widgetRegistry[type]();
+      if (result?.w) {
+        result.w.style.zIndex = ++topZ;
+        saveCurrentScreen();
+      }
+    } catch (err) {
+      console.error('Widget error:', err);
+      alert('Failed to load widget: ' + type);
+    }
   }
   widgetSelect.value = '';
 };
