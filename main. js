@@ -1,12 +1,35 @@
-// main.js
+// main.js (full version with annotation + tabs)
 
 import { widgetRegistry } from './widgets/widgetRegistry.js';
 
 const canvas = document.getElementById('canvas');
 const widgetSelect = document.getElementById('widgetSelect');
-
 const screens = { 'Screen 1': [] };
 let activeScreen = 'Screen 1';
+let topZ = 1000;
+
+function renderScreenTabs() {
+  const tabs = document.getElementById('screenTabs');
+  tabs.innerHTML = '';
+  Object.keys(screens).forEach(name => {
+    const btn = document.createElement('button');
+    btn.className = name === activeScreen ? 'active' : '';
+    btn.textContent = name;
+    btn.onclick = () => switchScreen(name);
+    tabs.appendChild(btn);
+  });
+  const add = document.createElement('button');
+  add.textContent = '+';
+  add.onclick = () => {
+    const name = prompt('New screen name:');
+    if (name && !screens[name]) {
+      screens[name] = [];
+      renderScreenTabs();
+      switchScreen(name);
+    }
+  };
+  tabs.appendChild(add);
+}
 
 function saveCurrentScreen() {
   const data = [];
@@ -19,46 +42,26 @@ function saveCurrentScreen() {
       width: s.width,
       height: s.height,
       z: w.style.zIndex,
-      locked: w.dataset.locked,
-      html: w.dataset.html || '',
-      idx: w.dataset.idx,
-      data: w.dataset.data,
-      url: w.dataset.url,
-      date: w.dataset.date,
-      title: w.dataset.title,
-      elapsed: w.dataset.elapsed,
-      total: w.dataset.total,
-      count: w.dataset.count,
-      items: w.dataset.items,
-      opts: w.dataset.opts,
-      names: w.dataset.names,
-      links: w.dataset.links,
-      color: w.dataset.color,
-      desc: w.dataset.desc,
-      format24: w.dataset.format24,
-      pattern: w.dataset.pattern,
-      size: w.dataset.size,
-      txtColor: w.dataset.txtColor,
-      bgColor: w.dataset.bgColor,
-      txtSize: w.dataset.txtSize,
-      htmlContent: w.querySelector('.content')?.innerHTML || ''
+      ...w.dataset
     });
   });
   screens[activeScreen] = data;
 }
 
-function clearCanvas() {
-  canvas.innerHTML = '';
+function switchScreen(name) {
+  saveCurrentScreen();
+  loadScreen(name);
+  activeScreen = name;
+  renderScreenTabs();
 }
 
 function loadScreen(name) {
-  clearCanvas();
-  const screen = screens[name] || [];
-  screen.forEach(cfg => {
+  canvas.innerHTML = '';
+  const data = screens[name] || [];
+  data.forEach(cfg => {
     const widget = widgetRegistry[cfg.type];
     if (widget) widget(cfg);
   });
-  activeScreen = name;
 }
 
 widgetSelect.onchange = e => {
@@ -70,6 +73,73 @@ widgetSelect.onchange = e => {
   widgetSelect.value = '';
 };
 
+let annotating = false;
+let annoCanvas, annoCtx, annoHistory = [];
+
+function initAnnotation() {
+  if (annoCanvas) return;
+  annoCanvas = document.createElement('canvas');
+  annoCanvas.width = canvas.clientWidth;
+  annoCanvas.height = canvas.clientHeight;
+  Object.assign(annoCanvas.style, {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    zIndex: 999,
+    pointerEvents: 'none'
+  });
+  canvas.appendChild(annoCanvas);
+  annoCtx = annoCanvas.getContext('2d');
+  annoCtx.lineCap = 'round';
+  annoCanvas.onmousedown = e => {
+    if (!annotating) return;
+    annoCtx.beginPath();
+    annoCtx.moveTo(e.offsetX, e.offsetY);
+    annoCanvas.onmousemove = ev => {
+      annoCtx.lineTo(ev.offsetX, ev.offsetY);
+      annoCtx.stroke();
+    };
+  };
+  document.onmouseup = () => {
+    if (annoCanvas) annoCanvas.onmousemove = null;
+    annoHistory.push(annoCanvas.toDataURL());
+    saveCurrentScreen();
+  };
+}
+
+function toggleAnnotation(on) {
+  annotating = on;
+  if (annoCanvas) {
+    annoCanvas.style.pointerEvents = on ? 'auto' : 'none';
+    annoCtx.globalCompositeOperation = 'source-over';
+  }
+  document.getElementById('annoControls').style.display = on ? 'flex' : 'none';
+}
+
+function bindAnnotationControls() {
+  document.getElementById('penBtn').onclick = () => annoCtx.globalCompositeOperation = 'source-over';
+  document.getElementById('eraserBtn').onclick = () => annoCtx.globalCompositeOperation = 'destination-out';
+  document.getElementById('penColor').oninput = e => annoCtx.strokeStyle = e.target.value;
+  document.getElementById('penSize').oninput = e => annoCtx.lineWidth = e.target.value;
+  document.getElementById('undoBtn').onclick = () => {
+    if (!annoHistory.length) return;
+    annoHistory.pop();
+    annoCtx.clearRect(0, 0, annoCanvas.width, annoCanvas.height);
+    const last = annoHistory[annoHistory.length - 1];
+    if (last) {
+      const img = new Image();
+      img.onload = () => annoCtx.drawImage(img, 0, 0);
+      img.src = last;
+    }
+  };
+}
+
 document.addEventListener('DOMContentLoaded', () => {
+  renderScreenTabs();
   loadScreen(activeScreen);
+  initAnnotation();
+  bindAnnotationControls();
+  document.getElementById('annotateTool').onclick = () => {
+    toggleAnnotation(!annotating);
+  };
 });
