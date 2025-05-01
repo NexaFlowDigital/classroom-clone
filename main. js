@@ -1,15 +1,75 @@
-// Entry point for Classroom Screen Clone (ES Module)
+// main.js
 
-import { initScreens, switchScreen } from './core/screen.js';
-import { registerWidgets } from './widgets/registry.js';
-import { setupToolbar } from './ui/toolbar.js';
-import { setupAnnotation } from './ui/annotation.js';
-import { setupSettings } from './ui/settings.js';
+import { widgetRegistry } from './widgets/widgetRegistry.js';
 
-window.addEventListener('DOMContentLoaded', () => {
-  registerWidgets();
-  initScreens();
-  setupToolbar();
-  setupAnnotation();
-  setupSettings();
+const canvas = document.getElementById('canvas');
+const widgetSelect = document.getElementById('widgetSelect');
+
+const screens = { 'Screen 1': [] };
+let activeScreen = 'Screen 1';
+
+function saveCurrentScreen() {
+  const data = [];
+  canvas.querySelectorAll('.widget').forEach(w => {
+    const s = getComputedStyle(w);
+    data.push({
+      type: w.dataset.type,
+      left: s.left,
+      top: s.top,
+      width: s.width,
+      height: s.height,
+      z: w.style.zIndex,
+      locked: w.dataset.locked,
+      html: w.dataset.html || '',
+      idx: w.dataset.idx,
+      data: w.dataset.data,
+      url: w.dataset.url,
+      date: w.dataset.date,
+      title: w.dataset.title,
+      elapsed: w.dataset.elapsed,
+      total: w.dataset.total,
+      count: w.dataset.count,
+      items: w.dataset.items,
+      opts: w.dataset.opts,
+      names: w.dataset.names,
+      links: w.dataset.links,
+      color: w.dataset.color,
+      desc: w.dataset.desc,
+      format24: w.dataset.format24,
+      pattern: w.dataset.pattern,
+      size: w.dataset.size,
+      txtColor: w.dataset.txtColor,
+      bgColor: w.dataset.bgColor,
+      txtSize: w.dataset.txtSize,
+      htmlContent: w.querySelector('.content')?.innerHTML || ''
+    });
+  });
+  screens[activeScreen] = data;
+}
+
+function clearCanvas() {
+  canvas.innerHTML = '';
+}
+
+function loadScreen(name) {
+  clearCanvas();
+  const screen = screens[name] || [];
+  screen.forEach(cfg => {
+    const widget = widgetRegistry[cfg.type];
+    if (widget) widget(cfg);
+  });
+  activeScreen = name;
+}
+
+widgetSelect.onchange = e => {
+  const type = e.target.value;
+  if (type && widgetRegistry[type]) {
+    widgetRegistry[type]();
+    saveCurrentScreen();
+  }
+  widgetSelect.value = '';
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+  loadScreen(activeScreen);
 });
