@@ -22,7 +22,6 @@
         <!-- core -->
         <optgroup label="Core">
           <option value="screenShare">Screen Share</option>
-          <option value="setBackground">Background</option>
           <option value="text">Text</option>
           <option value="clock">Clock</option>
           <option value="timer">Timer</option>
@@ -76,13 +75,12 @@
     <h3>Theme Settings</h3>
     <label>Toolbar bg: <input type="color" id="themeToolbar" value="#FDEBD0"/></label>
     <label>Widget header bg: <input type="color" id="themeWidget" value="#A9DFBF"/></label>
+    <label>Canvas bg: <input type="color" id="canvasBg" value="#ffffff"/></label>
     <button id="closeSettings">Close</button>
   </div>
 
   <!-- Per-widget Settings Panel -->
-  <div id="widgetSettingsPanel" class="hidden">
-    <!-- Filled dynamically when a widget is selected/hovered -->
-  </div>
+  <div id="widgetSettingsPanel" class="hidden"></div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="script.js"></script>
